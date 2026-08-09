@@ -67,26 +67,59 @@
   border-bottom: 3px solid rgba(150, 165, 175, 0.55);
 }
 
-/* 진열장 안, 야채 통이 늘어선 줄 */
+/*
+ * 진열장 안, 야채 통이 늘어선 줄들.
+ *
+ * 한 줄만 두면 기둥이 늘어선 울타리로 보인다 — 실제 델리 카운터는 통이
+ * 여러 줄 겹쳐 안쪽까지 빼곡하다. 뒷줄(0)은 작고 흐리게, 앞줄(2)은 크고
+ * 또렷하게 두어 원근을 준다. 줄마다 배열을 어긋나게 짜서(Battle.tsx
+ * BIN_ROWS) 통이 격자로 안 맞고 자연스럽게 겹쳐 보이게 했다.
+ */
 .bt__counter-bins {
   position: absolute;
   left: 0;
   right: 0;
+  top: 3%;
   bottom: calc(62% - 2px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+.bt__bin-row {
   display: flex;
   justify-content: space-evenly;
   align-items: flex-end;
-  padding: 0 2%;
-  height: 15%;
+  padding: 0 1.5%;
 }
+.bt__bin-row--0 {
+  opacity: 0.5;
+  scale: 1 0.68;
+}
+.bt__bin-row--1 {
+  opacity: 0.74;
+  scale: 1 0.84;
+}
+.bt__bin-row--2 {
+  opacity: 0.92;
+}
+
 .bt__bin {
-  width: 6%;
-  height: 100%;
+  width: 5.4%;
+  height: 30px;
   border-radius: 4px 4px 2px 2px;
   border: 1px solid rgba(90, 100, 105, 0.4);
-  opacity: 0.68;
-  /* 담긴 양이 다 달라야 통처럼 보인다 — 소복이 쌓인 볼록한 윗면 */
+  /*
+   * 매끈한 그라디언트 하나로는 통이지 재료로 안 보인다. 잘게 썬 조각을
+   * 흉내 내려면 밝고 어두운 작은 점을 흩어 둬야 한다 — 재료 실루엣
+   * (FormArt) 이 쓰는 방식과 같은 발상이다.
+   */
   background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.55) 0 7%, transparent 8%),
+    radial-gradient(circle at 52% 15%, rgba(255, 255, 255, 0.4) 0 6%, transparent 7%),
+    radial-gradient(circle at 78% 32%, rgba(0, 0, 0, 0.14) 0 7%, transparent 8%),
+    radial-gradient(circle at 30% 48%, rgba(255, 255, 255, 0.35) 0 6%, transparent 7%),
+    radial-gradient(circle at 64% 55%, rgba(0, 0, 0, 0.1) 0 6%, transparent 7%),
+    radial-gradient(circle at 40% 72%, rgba(255, 255, 255, 0.3) 0 6%, transparent 7%),
     radial-gradient(ellipse 70% 55% at 50% 0%, rgba(255, 255, 255, 0.4), transparent 60%),
     linear-gradient(180deg, var(--lit), var(--dim));
 }
@@ -97,22 +130,22 @@
 .bt__bin--spicy {
   --lit: var(--taste-spicy-lit);
   --dim: var(--taste-spicy-dim);
-  height: 84%;
+  height: 26px;
 }
 .bt__bin--tangy {
   --lit: var(--taste-tangy-lit);
   --dim: var(--taste-tangy-dim);
-  height: 92%;
+  height: 28px;
 }
 .bt__bin--herbal {
   --lit: var(--taste-herbal-lit);
   --dim: var(--taste-herbal-dim);
-  height: 76%;
+  height: 23px;
 }
 .bt__bin--rich {
   --lit: var(--taste-rich-lit);
   --dim: var(--taste-rich-dim);
-  height: 88%;
+  height: 27px;
 }
 
 /* 유리에 비치는 빛 한 줄기 — 통 위에 유리 한 장이 있다는 것을 알려 준다 */
@@ -381,35 +414,40 @@
  * 고정해도 모양마다 몸통 위치가 다르지만, 그래도 한자리에 두는 쪽이
  * 아홉 모양마다 자리를 따로 잡는 것보다 낫다 — 어느 모양이든 '표정이
  * 있는 그 자리'를 사람이 곧바로 찾는다.
+ *
+ * ⚠ 자리는 px 가 아니라 %로 잡는다. .bt__foe-body 는 화면이 낮으면
+ *   92px → 72px 로 줄어드는데(아래 미디어쿼리), px 로 고정해 뒀더니 작아진
+ *   상자에서는 왼쪽/오른쪽 눈이 가운데서 서로 겹쳤다 — 눈·입이 붙어 보인다는
+ *   신고가 이 버그였다. %는 상자 크기가 바뀌어도 항상 같은 간격을 지킨다.
+ *   간격 자체도 넓혔다 — 눈을 가장자리(20%)에 가깝게 둬 사이를 크게 벌린다.
  */
 .bt__foe-face {
   position: absolute;
   inset: 0;
-  scale: 0.85;
   z-index: 2;
   pointer-events: none;
 }
 .bt__foe-eye {
   position: absolute;
-  top: 32px;
-  width: 10px;
-  height: 14px;
+  top: 35%;
+  width: 11%;
+  height: 15%;
   background: #2c2016;
   border-radius: 3px;
 }
 .bt__foe-eye--l {
-  left: 26px;
+  left: 20%;
 }
 .bt__foe-eye--r {
-  right: 26px;
+  right: 20%;
 }
 .bt__foe-mouth {
   position: absolute;
-  top: 54px;
+  top: 62%;
   left: 50%;
   transform: translateX(-50%);
-  width: 18px;
-  height: 7px;
+  width: 20%;
+  height: 8%;
   border-bottom: 4px solid #2c2016;
   border-radius: 0 0 12px 12px;
 }
@@ -418,9 +456,9 @@
 
 /* 피격 — 눈을 찡그리고 입을 벌린다. 도우 쪽 hurt 와 같은 문법 */
 .bt__foe-face--hurt .bt__foe-eye {
-  height: 5px;
-  top: 36px;
-  width: 12px;
+  height: 5%;
+  top: 39%;
+  width: 13%;
 }
 .bt__foe-face--hurt .bt__foe-eye--l {
   rotate: 18deg;
@@ -429,9 +467,9 @@
   rotate: -18deg;
 }
 .bt__foe-face--hurt .bt__foe-mouth {
-  top: 52px;
-  width: 14px;
-  height: 12px;
+  top: 58%;
+  width: 16%;
+  height: 13%;
   border: none;
   background: #2c2016;
   border-radius: 50% 50% 42% 42%;
@@ -442,14 +480,14 @@
 
 /* 스킬 사용 — 눈을 부릅뜨고 입을 크게 벌린다. 기술을 쓰는 순간이다 */
 .bt__foe-face--skill .bt__foe-eye {
-  height: 16px;
-  top: 29px;
-  width: 11px;
+  height: 17%;
+  top: 31%;
+  width: 12%;
 }
 .bt__foe-face--skill .bt__foe-mouth {
-  top: 50px;
-  width: 20px;
-  height: 16px;
+  top: 56%;
+  width: 22%;
+  height: 17%;
   border: none;
   background: #2c2016;
   border-radius: 40% 40% 50% 50%;
@@ -460,25 +498,25 @@
 
 /* 죽음 — 눈이 ×, 입꼬리가 처진다. is-dead 의 회색·반투명과 함께 간다 */
 .bt__foe-face--dead .bt__foe-eye {
-  top: 30px;
-  width: 13px;
-  height: 13px;
+  top: 32%;
+  width: 14%;
+  height: 14%;
   background: none;
 }
 .bt__foe-face--dead .bt__foe-eye--l {
-  left: 24px;
+  left: 19%;
 }
 .bt__foe-face--dead .bt__foe-eye--r {
-  right: 24px;
+  right: 19%;
 }
 .bt__foe-face--dead .bt__foe-eye::before,
 .bt__foe-face--dead .bt__foe-eye::after {
   content: '';
   position: absolute;
   left: 0;
-  top: 5px;
-  width: 13px;
-  height: 3px;
+  top: 40%;
+  width: 100%;
+  height: 22%;
   background: #2c2016;
   border-radius: 2px;
 }
@@ -489,8 +527,8 @@
   rotate: -42deg;
 }
 .bt__foe-face--dead .bt__foe-mouth {
-  top: 60px;
-  width: 15px;
+  top: 66%;
+  width: 17%;
   border-bottom: none;
   border-top: 4px solid #2c2016;
   border-radius: 12px 12px 0 0;

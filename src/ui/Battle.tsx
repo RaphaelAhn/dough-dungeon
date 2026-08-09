@@ -503,8 +503,16 @@ type FoeMood = 'idle' | 'hurt' | 'skill' | 'dead'
  * 뒷 배경 — 서브웨이 식 토핑 바. 유리 진열장 아래 야채 통이 늘어선 자리에서
  * 싸우는 느낌을 준다(Battle.css .bt__counter). 색은 맛 변수를 그대로 쓴다 —
  * 새 팔레트를 만들지 않는다.
+ *
+ * 한 줄로는 울타리처럼 보였다. 실제 델리 카운터는 통이 여러 줄 겹쳐
+ * 안쪽까지 빼곡하다 — 뒷줄은 작고 흐리게, 앞줄은 크고 또렷하게 두어
+ * 원근을 준다(Battle.css .bt__bin-row--0/1/2).
  */
-const BIN_TASTES = ['mild', 'spicy', 'tangy', 'herbal', 'rich', 'mild', 'tangy', 'herbal', 'spicy', 'rich', 'mild', 'tangy'] as const
+const BIN_ROWS: readonly (readonly string[])[] = [
+  ['herbal', 'tangy', 'mild', 'rich', 'spicy', 'herbal', 'tangy', 'mild', 'rich', 'spicy', 'herbal', 'tangy', 'mild', 'rich'],
+  ['spicy', 'mild', 'rich', 'herbal', 'tangy', 'spicy', 'mild', 'rich', 'herbal', 'tangy', 'spicy', 'mild', 'rich', 'herbal'],
+  ['mild', 'herbal', 'tangy', 'spicy', 'rich', 'mild', 'herbal', 'tangy', 'spicy', 'rich', 'mild', 'herbal', 'tangy', 'spicy'],
+]
 
 function ToppingCounter() {
   return (
@@ -512,8 +520,12 @@ function ToppingCounter() {
       <div className="bt__counter-top" />
       <div className="bt__counter-case" />
       <div className="bt__counter-bins">
-        {BIN_TASTES.map((t, i) => (
-          <span key={i} className={`bt__bin bt__bin--${t}`} />
+        {BIN_ROWS.map((row, r) => (
+          <div className={`bt__bin-row bt__bin-row--${r}`} key={r}>
+            {row.map((t, i) => (
+              <span key={i} className={`bt__bin bt__bin--${t}`} />
+            ))}
+          </div>
         ))}
       </div>
       <div className="bt__counter-glass" />
