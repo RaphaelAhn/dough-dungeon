@@ -119,6 +119,13 @@ export type BattleState = {
   acted: { player: boolean; enemies: boolean }
   potions: number
   log: string[]
+  /**
+   * 이번 enemyAct 에서 특기(맛 기술)를 쓴 적의 id 들.
+   *
+   * UI 가 '스킬 사용' 표정을 로그 문구로 판정하지 않게 여기 구조적으로
+   * 남긴다 — 대사가 바뀌어도 표정 판정은 안 깨진다.
+   */
+  specialUsers: string[]
   /** 이 스테이지에 남은 시간(ms). 0 이 되면 timeout. */
   timeLeftMs: number
   /** 이번 턴에 커맨드를 고를 남은 시간(ms). 0 이 되면 아무것도 못 하고 넘어간다. */
@@ -179,6 +186,7 @@ export function startBattle(run: Run, enc: Encounter): BattleState {
     acted: { player: false, enemies: false },
     potions: run.potions,
     log: [],
+    specialUsers: [],
     timeLeftMs: stageLimitMs(enc.kind),
     turnLeftMs: TURN_LIMIT_MS,
     over: null,
@@ -331,6 +339,7 @@ export function enemyAct(prev: BattleState, rng: Rng = Math.random): BattleState
   if (prev.over) return prev
   const s: BattleState = structuredClone(prev)
   s.log = []
+  s.specialUsers = []
   resolveEnemies(s, rng)
   s.acted.enemies = true
   checkOver(s)
@@ -633,6 +642,7 @@ function resolveEnemies(s: BattleState, rng: Rng): void {
       continue
     }
     if (rng() < chance && enemySpecial(s, e, rng)) {
+      s.specialUsers.push(e.id)
       if (s.player.hp <= 0) break
       continue
     }

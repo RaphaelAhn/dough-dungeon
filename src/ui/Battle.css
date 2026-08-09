@@ -2,6 +2,14 @@
   height: 100%;
   max-width: 860px;
   margin: 0 auto;
+  /*
+   * position:relative 만으로는 쌓임 맥락이 안 생긴다(z-index:auto).
+   * 그러면 .bt__counter 의 z-index:-1 이 여기가 아니라 더 위 조상 기준으로
+   * 매겨져 배경째로 다 가려 버린다 — 실제로 그래서 카운터가 안 보였다.
+   * z-index 를 명시해 이 자리에서 쌓임 맥락을 새로 연다.
+   */
+  position: relative;
+  z-index: 0;
   display: grid;
   /*
    * 상단 · 진행바 · 전장 · 차례 · 로그 · 턴타이머 · 명령
@@ -14,7 +22,7 @@
   grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto;
   gap: 10px;
   padding: 16px 20px 20px;
-  /* 화덕 불빛이 위에서 내려온다. 보스로 갈수록 불이 세진다. */
+  /* 화덕 불빛이 위에서 내려온다. 보스로 갈수록 불이 세진다. 카운터(.bt__counter)가 이 위에 얹힌다. */
   background:
     radial-gradient(ellipse 90% 38% at 50% 0%, rgba(238, 171, 46, 0.28), transparent 72%),
     var(--bg);
@@ -28,6 +36,108 @@
   background:
     radial-gradient(ellipse 95% 48% at 50% 0%, rgba(217, 79, 43, 0.36), transparent 72%),
     var(--bg);
+}
+
+/*
+ * 뒷 배경 — 서브웨이 식 토핑 바. 유리 진열장 아래 야채 통이 늘어선 그
+ * 자리에서 싸우는 느낌을 준다.
+ *
+ * .bt 의 배경(화덕 불빛)은 그대로 둔다. 이 켜는 그 위에 얹히는 반투명
+ * 레이어라 보스로 갈수록 뜨거워지는 신호가 여전히 비쳐 보인다 — 카운터
+ * 그림 하나 넣자고 기존 위험 신호를 지우지 않는다.
+ *
+ * z-index: -1 인 이유 — .bt 를 position:relative 로 두어 쌓임 맥락을 만들고,
+ * 이 켜를 그 안에서 가장 뒤로 보낸다. 다른 형제(.bt__field 등)는 static 이라
+ * 별도 조치 없이도 항상 이 켜보다 위에 그려진다(포지션 없는 자손이 음수
+ * z-index 자손보다 나중에 칠해지는 규칙).
+ */
+.bt__counter {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 유리 진열장 — 위쪽 3 할. 스테인리스 느낌의 서늘한 색을 화덕 불빛 위에 얹는다 */
+.bt__counter-case {
+  position: absolute;
+  inset: 0 0 62% 0;
+  background: linear-gradient(180deg, rgba(214, 224, 230, 0.82), rgba(190, 202, 210, 0.55));
+  border-bottom: 3px solid rgba(150, 165, 175, 0.55);
+}
+
+/* 진열장 안, 야채 통이 늘어선 줄 */
+.bt__counter-bins {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(62% - 2px);
+  display: flex;
+  justify-content: space-evenly;
+  align-items: flex-end;
+  padding: 0 2%;
+  height: 15%;
+}
+.bt__bin {
+  width: 6%;
+  height: 100%;
+  border-radius: 4px 4px 2px 2px;
+  border: 1px solid rgba(90, 100, 105, 0.4);
+  opacity: 0.68;
+  /* 담긴 양이 다 달라야 통처럼 보인다 — 소복이 쌓인 볼록한 윗면 */
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(255, 255, 255, 0.4), transparent 60%),
+    linear-gradient(180deg, var(--lit), var(--dim));
+}
+.bt__bin--mild {
+  --lit: var(--taste-mild-lit);
+  --dim: var(--taste-mild-dim);
+}
+.bt__bin--spicy {
+  --lit: var(--taste-spicy-lit);
+  --dim: var(--taste-spicy-dim);
+  height: 84%;
+}
+.bt__bin--tangy {
+  --lit: var(--taste-tangy-lit);
+  --dim: var(--taste-tangy-dim);
+  height: 92%;
+}
+.bt__bin--herbal {
+  --lit: var(--taste-herbal-lit);
+  --dim: var(--taste-herbal-dim);
+  height: 76%;
+}
+.bt__bin--rich {
+  --lit: var(--taste-rich-lit);
+  --dim: var(--taste-rich-dim);
+  height: 88%;
+}
+
+/* 유리에 비치는 빛 한 줄기 — 통 위에 유리 한 장이 있다는 것을 알려 준다 */
+.bt__counter-glass {
+  position: absolute;
+  inset: 0 0 62% 0;
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.22) 48%,
+    transparent 56%
+  );
+}
+
+/* 아래 3/5 — 스테인리스 조리대. 은은한 세로 결로 금속 느낌만 낸다 */
+.bt__counter-top {
+  position: absolute;
+  inset: 38% 0 0 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 0 2px,
+      transparent 2px 26px
+    ),
+    linear-gradient(180deg, rgba(200, 210, 216, 0.4), rgba(180, 190, 196, 0.22));
 }
 
 /* --- 상단 --- */
@@ -201,6 +311,7 @@
  * 배경·테두리를 여기서 주면 실루엣 뒤에 네모가 비쳐 보인다.
  */
 .bt__foe-body {
+  position: relative;
   width: 92px;
   height: 92px;
   animation: bt-float 2.4s ease-in-out infinite;
@@ -260,6 +371,146 @@
 @keyframes bt-float {
   50% {
     transform: translateY(-6px);
+  }
+}
+
+/* --- 적 표정 --- */
+/*
+ * 도우(CharacterSprite.css .sprite__face)와 같은 방식 — 눈·입 두 부위만
+ * mood 로 바꾼다. 재료 실루엣은 아홉 모양이 제각각이라 얼굴을 한가운데
+ * 고정해도 모양마다 몸통 위치가 다르지만, 그래도 한자리에 두는 쪽이
+ * 아홉 모양마다 자리를 따로 잡는 것보다 낫다 — 어느 모양이든 '표정이
+ * 있는 그 자리'를 사람이 곧바로 찾는다.
+ */
+.bt__foe-face {
+  position: absolute;
+  inset: 0;
+  scale: 0.85;
+  z-index: 2;
+  pointer-events: none;
+}
+.bt__foe-eye {
+  position: absolute;
+  top: 32px;
+  width: 10px;
+  height: 14px;
+  background: #2c2016;
+  border-radius: 3px;
+}
+.bt__foe-eye--l {
+  left: 26px;
+}
+.bt__foe-eye--r {
+  right: 26px;
+}
+.bt__foe-mouth {
+  position: absolute;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 7px;
+  border-bottom: 4px solid #2c2016;
+  border-radius: 0 0 12px 12px;
+}
+
+/* 대기 — 기본 얼굴 그대로. 숨 쉬듯 뜬다(bt-float) */
+
+/* 피격 — 눈을 찡그리고 입을 벌린다. 도우 쪽 hurt 와 같은 문법 */
+.bt__foe-face--hurt .bt__foe-eye {
+  height: 5px;
+  top: 36px;
+  width: 12px;
+}
+.bt__foe-face--hurt .bt__foe-eye--l {
+  rotate: 18deg;
+}
+.bt__foe-face--hurt .bt__foe-eye--r {
+  rotate: -18deg;
+}
+.bt__foe-face--hurt .bt__foe-mouth {
+  top: 52px;
+  width: 14px;
+  height: 12px;
+  border: none;
+  background: #2c2016;
+  border-radius: 50% 50% 42% 42%;
+}
+.bt__foe-body--mood-hurt {
+  animation: bt-foe-shake 0.34s ease-in-out;
+}
+
+/* 스킬 사용 — 눈을 부릅뜨고 입을 크게 벌린다. 기술을 쓰는 순간이다 */
+.bt__foe-face--skill .bt__foe-eye {
+  height: 16px;
+  top: 29px;
+  width: 11px;
+}
+.bt__foe-face--skill .bt__foe-mouth {
+  top: 50px;
+  width: 20px;
+  height: 16px;
+  border: none;
+  background: #2c2016;
+  border-radius: 40% 40% 50% 50%;
+}
+.bt__foe-body--mood-skill {
+  animation: bt-foe-charge 0.5s ease-in-out infinite;
+}
+
+/* 죽음 — 눈이 ×, 입꼬리가 처진다. is-dead 의 회색·반투명과 함께 간다 */
+.bt__foe-face--dead .bt__foe-eye {
+  top: 30px;
+  width: 13px;
+  height: 13px;
+  background: none;
+}
+.bt__foe-face--dead .bt__foe-eye--l {
+  left: 24px;
+}
+.bt__foe-face--dead .bt__foe-eye--r {
+  right: 24px;
+}
+.bt__foe-face--dead .bt__foe-eye::before,
+.bt__foe-face--dead .bt__foe-eye::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 13px;
+  height: 3px;
+  background: #2c2016;
+  border-radius: 2px;
+}
+.bt__foe-face--dead .bt__foe-eye::before {
+  rotate: 42deg;
+}
+.bt__foe-face--dead .bt__foe-eye::after {
+  rotate: -42deg;
+}
+.bt__foe-face--dead .bt__foe-mouth {
+  top: 60px;
+  width: 15px;
+  border-bottom: none;
+  border-top: 4px solid #2c2016;
+  border-radius: 12px 12px 0 0;
+}
+
+@keyframes bt-foe-shake {
+  0%, 100% { translate: 0 0; }
+  25% { translate: -5px 0; }
+  75% { translate: 5px 0; }
+}
+
+@keyframes bt-foe-charge {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.06; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bt__foe-body--mood-hurt,
+  .bt__foe-body--mood-skill {
+    animation: none;
   }
 }
 

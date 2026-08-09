@@ -142,6 +142,36 @@ export default function Battle({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foeHp, foeLeft])
 
+  /*
+   * 적 하나하나가 방금 맞았는지 — 신선도가 준 그 개체만 잠깐 표정을 바꾼다.
+   *
+   * 플레이어의 struck 과 같은 원리(숫자가 줄었다는 사실만 본다)를 적마다
+   * id 로 나눠서 잰다. 로그 문구는 보지 않는다 — 여럿이 한 번에 맞아도
+   * 문구 하나로는 누가 맞았는지 못 가른다.
+   */
+  const [foeHurt, setFoeHurt] = useState<Set<string>>(new Set())
+  const lastFoeHpById = useRef<Record<string, number>>(
+    Object.fromEntries(state.enemies.map((e) => [e.id, e.hp])),
+  )
+  useEffect(() => {
+    const prev = lastFoeHpById.current
+    const hit: string[] = []
+    for (const e of state.enemies) {
+      if (e.hp < (prev[e.id] ?? e.hp)) hit.push(e.id)
+      prev[e.id] = e.hp
+    }
+    if (hit.length === 0) return
+    setFoeHurt((s) => new Set([...s, ...hit]))
+    const t = setTimeout(() => {
+      setFoeHurt((s) => {
+        const next = new Set(s)
+        hit.forEach((id) => next.delete(id))
+        return next
+      })
+    }, 380)
+    return () => clearTimeout(t)
+  }, [state.enemies])
+
   useEffect(() => {
     if (!state.over) return
     /*
@@ -316,6 +346,7 @@ export default function Battle({
 
   return (
     <div className={`bt bt--${enc.kind}`}>
+      <ToppingCounter />
       <header className="bt__top">
         <span className="bt__stage">
           {run.stage} 라운드
@@ -339,8 +370,21 @@ export default function Battle({
             어느 몬스터 것인지 눈으로 이어지지 않는다. */}
         <div className={`bt__side bt__side--foe${phase === 'theirs' ? ' is-acting' : ''}`}>
           {state.enemies.map((e, i) => {
+            /*
+             * 우선순위는 도우의 mood 와 같은 원칙 — 더 급한 정보가 이긴다.
+             * 죽음 > 피격 > 스킬 사용 > 대기.
+             */
+            const mood: FoeMood =
+              e.hp <= 0
+                ? 'dead'
+                : foeHurt.has(e.id)
+                  ? 'hurt'
+                  : phase === 'theirs' && state.specialUsers.includes(e.id)
+                    ? 'skill'
+                    : 'idle'
             const props = {
               unit: e,
+              mood,
               selected: i === target && aliveCount > 1,
               pickable: e.hp > 0 && aliveCount > 1 && phase === 'choose',
               onPick: () => setTarget(i),
@@ -452,7 +496,32 @@ export default function Battle({
   )
 }
 
-type FoeProps = { unit: Unit; selected: boolean; pickable: boolean; onPick: () => void }
+/** 적의 표정. 죽음 > 피격 > 스킬 사용 > 대기 순으로 급한 쪽이 이긴다(Battle.tsx). */
+type FoeMood = 'idle' | 'hurt' | 'skill' | 'dead'
+
+/*
+ * 뒷 배경 — 서브웨이 식 토핑 바. 유리 진열장 아래 야채 통이 늘어선 자리에서
+ * 싸우는 느낌을 준다(Battle.css .bt__counter). 색은 맛 변수를 그대로 쓴다 —
+ * 새 팔레트를 만들지 않는다.
+ */
+const BIN_TASTES = ['mild', 'spicy', 'tangy', 'herbal', 'rich', 'mild', 'tangy', 'herbal', 'spicy', 'rich', 'mild', 'tangy'] as const
+
+function ToppingCounter() {
+  return (
+    <div className="bt__counter" aria-hidden="true">
+      <div className="bt__counter-top" />
+      <div className="bt__counter-case" />
+      <div className="bt__counter-bins">
+        {BIN_TASTES.map((t, i) => (
+          <span key={i} className={`bt__bin bt__bin--${t}`} />
+        ))}
+      </div>
+      <div className="bt__counter-glass" />
+    </div>
+  )
+}
+
+type FoeProps = { unit: Unit; mood: FoeMood; selected: boolean; pickable: boolean; onPick: () => void }
 
 /** 클릭·키보드로 대상을 고를 수 있게 감싼다 */
 function pickProps(p: FoeProps): HTMLAttributes<HTMLDivElement> {
@@ -497,8 +566,23 @@ function FoeArt(p: FoeProps) {
     .join(' ')
   return (
     <div className={cls} {...pickProps(p)}>
-      <div className={`bt__foe-body bt__foe-body--${p.unit.taste ?? 'plain'}`}>
+      <div
+        className={`bt__foe-body bt__foe-body--${p.unit.taste ?? 'plain'}${
+          p.mood === 'hurt' || p.mood === 'skill' ? ` bt__foe-body--mood-${p.mood}` : ''
+        }`}
+      >
         <FormArt form={p.unit.form ?? 'round'} />
+        {/*
+          재료 실루엣 위에 얹는 표정 한 겹. 도우(CharacterSprite)와 같은
+          방식 — 눈·입 두 부위만 mood 로 바꾼다. 어느 모양(둥근 것·잎·고추…)
+          이든 같은 자리에 얹으면 되도록 FormArt 는 손대지 않는다 — 도우 위
+          토핑 아이콘으로도 같이 쓰이는 그림이라 거기엔 얼굴이 있으면 안 된다.
+        */}
+        <span className={`bt__foe-face bt__foe-face--${p.mood}`} aria-hidden="true">
+          <i className="bt__foe-eye bt__foe-eye--l" />
+          <i className="bt__foe-eye bt__foe-eye--r" />
+          <i className="bt__foe-mouth" />
+        </span>
       </div>
     </div>
   )
