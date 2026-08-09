@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import TitleScreen from './ui/TitleScreen'
 import StartMenu from './ui/StartMenu'
+import StorySkip from './ui/StorySkip'
 import Prologue from './ui/Prologue'
 import CharacterCreate from './ui/CharacterCreate'
 import DiceRoll from './ui/DiceRoll'
@@ -40,6 +41,7 @@ import './App.css'
 type Screen =
   | 'title'
   | 'startmenu'
+  | 'storyskip'
   | 'prologue'
   | 'character'
   | 'dice'
@@ -97,6 +99,12 @@ export default function App() {
   // 결과 화면에 보여 줄 완성작 이름과 도감 진행도
   const [madeName, setMadeName] = useState('')
   const [found, setFound] = useState(() => discoveredCount(loadCodex()))
+  /*
+   * 직전 판을 끝까지 마쳤는가(완성·상함·타 버림 무엇이든). 처음 켰을 때는
+   * 물어볼 게 없다 — 아직 본 적 없는 이야기라 스킵을 고를 이유가 없다.
+   * 한 판이라도 결과 화면을 보고 나면 다음부터는 계속 묻는다.
+   */
+  const [hasPlayed, setHasPlayed] = useState(false)
 
   /*
    * 배경음의 두께는 화면이 아니라 판의 진행이 정한다. 층이 바뀔 때만 알려 주면
@@ -218,12 +226,14 @@ export default function App() {
       setFound(discoveredCount(recordPizza(run.pizza, run.toppings)))
     }
     setResult('clear')
+    setHasPlayed(true)
     setScreen('result')
   }, [run])
 
   const onEnd = useCallback((reason: 'lose' | 'timeout') => {
     setMadeName('')
     setResult(reason)
+    setHasPlayed(true)
     setScreen('result')
   }, [])
 
@@ -232,7 +242,19 @@ export default function App() {
   }
 
   if (screen === 'startmenu') {
-    return <StartMenu onMake={() => setScreen('prologue')} onBack={back} />
+    // 처음이면 곧장 이야기로. 한 번이라도 끝을 봤으면 건너뛸지부터 묻는다.
+    return (
+      <StartMenu onMake={() => setScreen(hasPlayed ? 'storyskip' : 'prologue')} onBack={back} />
+    )
+  }
+
+  if (screen === 'storyskip') {
+    return (
+      <StorySkip
+        onSkip={() => setScreen('dice')}
+        onPlay={() => setScreen('prologue')}
+      />
+    )
   }
 
   if (screen === 'prologue') {
@@ -313,6 +335,8 @@ function musicLevel(screen: Screen, run: Run | null): MusicLevel {
   if (screen === 'result') return 0
   // 프롤로그는 소리 연출(콤바인·대사)이 자리를 다 쓴다 — 곡이 덮으면 안 된다
   if (screen === 'prologue') return 0
+  // 검은 화면에서 묻는 동안은 곡이 없다 — 정적이라야 질문에 집중한다
+  if (screen === 'storyskip') return 0
   // 화덕 연출도 마찬가지다 — 재료 놓는 소리·굽는 소리가 주인공이다
   if (screen === 'bake') return 0
   // 주방의 재촉도 대사가 자리를 다 쓴다
