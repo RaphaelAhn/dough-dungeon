@@ -1,7 +1,21 @@
 import { useEffect, useState } from 'react'
 import { BASE_STATS, clampName, isValidName, NAME_MAX, STAT_META } from '../core/character'
-import CharacterSprite from './CharacterSprite'
+import CharacterSprite, { SKIN_LABEL, type Skin } from './CharacterSprite'
+import { play } from './sound'
 import './CharacterCreate.css'
+
+/**
+ * 도우 색은 셋이다. 흰 도우만 처음부터 쓸 수 있고, 나머지 둘은 잠긴 카드로
+ * 보여만 준다 — 해금 조건은 아직 없다(데모 단계). 골라도 시작할 수 없고,
+ * 왜 안 되는지만 버튼에 그대로 뜬다.
+ */
+const SKINS: { id: Skin; locked: boolean }[] = [
+  { id: 'white', locked: false },
+  { id: 'blackRice', locked: true },
+  { id: 'chlorella', locked: true },
+]
+
+const LOCK_MSG = '해제 조건을 클리어해야 획득할 수 있습니다'
 
 export default function CharacterCreate({
   onConfirm,
@@ -10,18 +24,31 @@ export default function CharacterCreate({
   onConfirm: (name: string) => void
   onBack: () => void
 }) {
+  const [cursor, setCursor] = useState(0)
   const [name, setName] = useState('')
-  const ready = isValidName(name)
+  const picked = SKINS[cursor]
+  const ready = isValidName(name) && !picked.locked
 
   const confirm = () => {
     if (ready) onConfirm(name.trim())
+  }
+
+  const moveCursor = (delta: number) => {
+    setCursor((c) => (c + delta + SKINS.length) % SKINS.length)
+    play('move')
   }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement)?.tagName === 'INPUT'
 
-      if (e.key === 'Enter' || (!typing && e.key === ' ')) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        moveCursor(-1)
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        moveCursor(1)
+      } else if (e.key === 'Enter' || (!typing && e.key === ' ')) {
         e.preventDefault()
         if (ready) onConfirm(name.trim())
       } else if (e.key === 'Escape') {
@@ -31,6 +58,7 @@ export default function CharacterCreate({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, ready, onConfirm, onBack])
 
   return (
@@ -41,15 +69,21 @@ export default function CharacterCreate({
       </header>
 
       <div className="cc__stage">
-        {/*
-          도우는 한 가지다. 둥근·네모로 나눠 두었지만 성능 차이가 없어 고르는
-          의미가 없었고, 이제 도우의 성격은 만들기 단계(분할·둥글리기·성형)가
-          정한다. 여기서는 이름만 짓는다.
-        */}
-        <div className="cc__card is-on">
-          <CharacterSprite scale={0.8} />
-          <span className="cc__name">흰 도우</span>
-        </div>
+        {SKINS.map((s, i) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`cc__card${i === cursor ? ' is-on' : ''}${s.locked ? ' is-locked' : ''}`}
+            onClick={() => {
+              if (i !== cursor) play('move')
+              setCursor(i)
+            }}
+          >
+            <CharacterSprite scale={0.8} skin={s.id} />
+            <span className="cc__name">{SKIN_LABEL[s.id]}</span>
+            {s.locked && <span className="cc__lock">잠김</span>}
+          </button>
+        ))}
       </div>
 
       <section className="cc__name-field">
@@ -90,7 +124,7 @@ export default function CharacterCreate({
           ← 뒤로
         </button>
         <button className="cc__btn cc__btn--go" onClick={confirm} disabled={!ready}>
-          {ready ? `${name.trim()}(으)로 시작 →` : '이름을 입력하세요'}
+          {picked.locked ? LOCK_MSG : isValidName(name) ? `${name.trim()}(으)로 시작 →` : '이름을 입력하세요'}
         </button>
       </footer>
       <p className="cc__hint">←→ 모양 · Enter 결정 · Esc 뒤로</p>

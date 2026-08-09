@@ -55,6 +55,39 @@ let noiseBuf: AudioBuffer | null = null
 let muted = readMuted()
 
 /**
+ * 음악이 흐르는 통로. 효과음은 master 로 바로 가고 음악만 여기를 거친다.
+ *
+ * 통로를 가른 이유는 두 가지다. hush() 가 효과음을 끊을 때 배경음까지 멎으면
+ * 안 되고, 음악은 효과음 밑에 깔려 있어야 하므로 한 번에 눌러 둘 자리가 필요하다.
+ */
+let music: GainNode | null = null
+
+/* 음악은 효과음의 절반 조금 위. 이보다 크면 때리는 소리를 덮는다. */
+const MUSIC_VOL = 0.55
+
+/** 소리가 켜졌다/꺼졌다를 배경음 쪽에 알린다. bgm.ts 가 하나 걸어 둔다. */
+let muteWatcher: ((muted: boolean) => void) | null = null
+
+export function watchMute(fn: (muted: boolean) => void): void {
+  muteWatcher = fn
+}
+
+/**
+ * 음악을 내보낼 통로를 얻는다. 소리가 꺼져 있거나 브라우저가 못 하면 null 이다.
+ * 배경음 쪽에서 이 값이 null 인 동안은 아무것도 예약하지 않는다.
+ */
+export function musicBus(): { ctx: AudioContext; bus: GainNode } | null {
+  if (!ensure() || !ctx || !master) return null
+  if (!music) {
+    music = ctx.createGain()
+    music.gain.value = MUSIC_VOL
+    music.connect(master)
+  }
+  return { ctx, bus: music }
+}
+
+
+/**
  * 지금 울리고 있는(또는 울리기로 예약된) 소리들.
  *
  * 끝나는 소리는 5초 넘게 끈다. 다음으로 넘어가려는 사람을 소리가 붙잡으면
@@ -115,6 +148,11 @@ export function toggleMute(): boolean {
   if (master && ctx) {
     master.gain.setTargetAtTime(muted ? 0 : MASTER_VOL, ctx.currentTime, 0.01)
   }
+  /*
+   * 꺼진 채로 시작하면 AudioContext 자체가 없어 배경음이 한 마디도 예약되지
+   * 않는다. 다시 켰을 때 곡이 살아나려면 이쪽에서 깨워 줘야 한다.
+   */
+  muteWatcher?.(muted)
   return muted
 }
 
@@ -437,6 +475,38 @@ const SPECS = {
         dur: 0.045,
         vol: 0.12 + t * 0.14,
         wave: 'sine' as Wave,
+      }
+    }),
+  },
+
+  /* --- 프롤로그 --- */
+  /**
+   * 트랙터가 다가온다 — 통통통통 튀는 디젤 엔진의 점화음.
+   *
+   * 처음엔 이어지는 드론(엔진 하나가 웅웅대는 소리)으로 만들었더니 우주선처럼
+   * 들렸다. 트랙터는 한 실린더씩 따로 터지는 소리라, 노이즈(기계 마찰)와
+   * 짧게 꺾이는 톱니(실린더 점화)를 한 쌍으로 묶어 또각또각 끊어 친다.
+   * 간격이 좁아지며(0.14→0.095s) 점점 가까이·잦게 다가온다.
+   */
+  harvest: {
+    noise: Array.from({ length: 16 }, (_, i) => {
+      const t = i / 15
+      return {
+        at: i * (0.14 - t * 0.045),
+        dur: 0.07,
+        vol: 0.12 + t * 0.2,
+        lp: 500 + t * 200,
+      }
+    }),
+    tones: Array.from({ length: 16 }, (_, i) => {
+      const t = i / 15
+      return {
+        at: i * (0.14 - t * 0.045),
+        from: 62 + t * 8,
+        to: 40,
+        dur: 0.09,
+        vol: 0.16 + t * 0.14,
+        wave: 'sawtooth' as Wave,
       }
     }),
   },

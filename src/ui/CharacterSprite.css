@@ -55,12 +55,35 @@
 }
 
 /*
- * 도우는 한 가지다. 둥근/네모로 나눠 두었지만 성능 차이가 없어 고르는
- * 의미가 없었고, 만들기 단계(분할·둥글리기·성형)가 생기면서 도우의 성격은
- * 그쪽에서 정해진다. 모양은 손으로 편 반죽 하나로 둔다.
+ * 모양은 손으로 편 반죽 하나로 둔다 — 둥근/네모를 나눴을 때 성능 차이가
+ * 없어 고르는 의미가 없었다. 대신 색으로 갈린다(CharacterCreate.tsx 잠긴
+ * 카드): 흰 도우 / 흑미 도우 / 클로렐라 도우.
  */
 .sprite__body {
   border-radius: 50%;
+}
+
+/*
+ * 흑미 — 짙은 자흑색. 몸이 어두워지는 만큼 얼굴도 밝혀야 한다 — 기본
+ * 눈·입 색(#4a3a22)은 어두운 반죽 위에서 거의 안 보인다.
+ */
+.sprite--skin-blackRice .sprite__body {
+  background:
+    var(--gloss),
+    linear-gradient(165deg, #4d4450, #2b232a);
+}
+.sprite--skin-blackRice .sprite__eye {
+  background: #e8dcc4;
+}
+.sprite--skin-blackRice .sprite__mouth {
+  border-bottom-color: #e8dcc4;
+}
+
+/* 클로렐라 — 연둣빛 반죽. 몸이 밝은 편이라 기본 얼굴색을 그대로 써도 잘 보인다 */
+.sprite--skin-chlorella .sprite__body {
+  background:
+    var(--gloss),
+    linear-gradient(165deg, #b3dc94, #7cad5c);
 }
 
 /* --- 얼굴 --- */

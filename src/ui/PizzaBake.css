@@ -1,0 +1,158 @@
+/* 피자 완성 연출 — 소스 → 토핑 → 치즈 → 화덕 → 완성 */
+.pb {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  overflow-y: auto;
+  gap: 14px;
+  padding: 22px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.6s ease;
+}
+.pb:focus-visible {
+  outline: none;
+}
+.pb--oven,
+.pb--baking {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 74%, rgba(255, 120, 40, 0.14), transparent 70%),
+    var(--bg);
+}
+
+.pb__caption {
+  font-size: 15px;
+  font-weight: 700;
+  min-height: 1.4em;
+}
+
+.pb__scene {
+  position: relative;
+  width: 300px;
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * 피자 그림 자체(크러스트·소스·토핑·치즈)는 PizzaArt 가 그린다.
+ * 여기서는 화덕을 드나드는 자리(이동·축소·흐려짐)만 잡는다.
+ */
+.pb__pizza {
+  position: relative;
+  z-index: 1;
+  transition:
+    translate 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+    scale 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.7s ease;
+}
+/* 화덕 안으로 — 작아지고 흐려지며 아래로 내려간다. 빼면(=done) 같은 전환으로 되돌아온다 */
+.pb__pizza.is-in-oven {
+  translate: 0 66px;
+  scale: 0.52;
+  opacity: 0.3;
+}
+
+/* --- 화덕 --- */
+.pb__oven {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  translate: -50% 0;
+  width: 226px;
+  height: 132px;
+  border-radius: 113px 113px 16px 16px;
+  background: linear-gradient(180deg, #6b5a4a, #3a2c21);
+  border: 6px solid #2a1f17;
+  overflow: hidden;
+  opacity: 0;
+  z-index: 0;
+  transition: opacity 0.5s ease;
+}
+.pb__oven.is-on {
+  opacity: 1;
+}
+.pb__oven-glow {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  translate: -50% 0;
+  width: 130px;
+  height: 74px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 150, 60, 0.85), rgba(255, 90, 20, 0.22) 72%, transparent);
+  filter: blur(2px);
+  animation: pb-glow 1.4s ease-in-out infinite;
+}
+@keyframes pb-glow {
+  0%, 100% {
+    opacity: 0.7;
+    scale: 1;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.08;
+  }
+}
+.pb__ember {
+  position: absolute;
+  bottom: 24px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffb15c;
+  box-shadow: 0 0 6px 2px rgba(255, 150, 60, 0.7);
+  animation: pb-ember 1.8s ease-out infinite;
+}
+@keyframes pb-ember {
+  0% {
+    translate: 0 0;
+    opacity: 0.9;
+  }
+  100% {
+    translate: 0 -74px;
+    opacity: 0;
+  }
+}
+
+.pb__name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  min-height: 1.5em;
+}
+.pb__hint {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+@media (max-width: 560px) {
+  .pb__scene {
+    width: 240px;
+    height: 270px;
+  }
+  /* PizzaArt 는 px 크기를 prop 으로 받아 그린다 — 여기서는 통째로 축소한다 */
+  .pb__pizza {
+    scale: 0.82;
+  }
+  .pb__oven {
+    width: 186px;
+    height: 110px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pb,
+  .pb__pizza,
+  .pb__oven {
+    transition: none;
+  }
+  .pb__oven-glow,
+  .pb__ember {
+    animation: none;
+  }
+}

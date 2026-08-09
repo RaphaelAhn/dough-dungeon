@@ -26,7 +26,7 @@ export const STAT_META: { key: keyof Stats; label: string; desc: string }[] = [
   { key: 'hp', label: '신선도', desc: '0이 되면 상해서 버린다' },
   { key: 'atk', label: '반죽 탄력', desc: '직접 때리는 힘' },
   { key: 'mag', label: '반죽 두께', desc: '기술 위력이자 기술을 쓸 밑천' },
-  { key: 'spd', label: '발효도', desc: '선공 판정·회피' },
+  { key: 'spd', label: '신축성', desc: '선공 판정·회피' },
   { key: 'luk', label: '촉감', desc: '보상 등급·결정적 한 방' },
 ]
 
@@ -34,7 +34,7 @@ export const STAT_LABEL: Record<keyof Stats, string> = {
   hp: '신선도',
   atk: '반죽 탄력',
   mag: '반죽 두께',
-  spd: '발효도',
+  spd: '신축성',
   luk: '촉감',
 }
 
@@ -43,7 +43,7 @@ export const STAT_SHORT: Record<keyof Stats, string> = {
   hp: '신선도',
   atk: '탄력',
   mag: '두께',
-  spd: '발효',
+  spd: '신축',
   luk: '촉감',
 }
 

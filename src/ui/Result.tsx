@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { CODEX_TOTAL } from '../core/codex'
 import CharacterSprite from './CharacterSprite'
+import PizzaArt from './PizzaArt'
 import { GRADE_META } from '../core/pizza'
 import type { Run } from '../core/run'
 import { hush } from './sound'
@@ -102,11 +103,16 @@ export default function Result({
     <div className={`rs rs--${kind}`} onPointerDown={hush}>
       {kind === 'clear' && <Confetti />}
       <div className="rs__dough">
-        <CharacterSprite
-          scale={1.1}
-          toppings={run.toppings}
-          mood={kind === 'clear' ? 'win' : 'lose'}
-        />
+        {/*
+          완성했을 때는 화덕 연출(PizzaBake)에서 막 꺼낸 그 피자를 그대로
+          보여 준다 — 도우에 점 몇 개가 아니라 진짜 피자로 읽혀야 한다.
+          실패했을 때는 구워지지도 못했으니 보여 줄 피자가 없다. 슬픈 도우다.
+        */}
+        {kind === 'clear' ? (
+          <PizzaArt toppings={run.toppings} baked size={180} />
+        ) : (
+          <CharacterSprite scale={1.1} mood="lose" />
+        )}
       </div>
 
       <h2 className="rs__title">{c.title}</h2>

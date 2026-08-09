@@ -22,7 +22,7 @@ import { play } from './sound'
 import './Battle.css'
 
 /** 한 조각을 보여 주는 시간 ⚠ 짧으면 못 읽고 길면 답답하다 */
-const STEP_MS = 750
+const STEP_MS = 1000
 
 /**
  * 도우 그림 배율. 화면이 낮으면 줄인다.
@@ -187,6 +187,8 @@ export default function Battle({
     if (cmd.type === 'defend') play('guard')
     else if (cmd.type === 'item') play(cur.potions > 0 ? 'heal' : 'back')
     else if (cmd.type === 'skill') play(cur.mp >= SKILLS[cmd.id].mp ? 'skill' : 'back')
+    // 놓친 턴. 내려가는 소리라 '아무 일도 없었다'가 귀로도 온다.
+    else if (cmd.type === 'pass') play('back')
     // 대상은 커서가 정한다. defend/item 은 대상이 없다.
     const aimed: Command =
       cmd.type === 'attack' || cmd.type === 'skill' ? { ...cmd, target: targetRef.current } : cmd
@@ -242,11 +244,14 @@ export default function Battle({
       last.current = now
       setState((s) => {
         if (s.over) return s
-        const { state: next, autoAct } = tick(s, dt)
-        // 명령 시간을 넘기면 자동으로 공격한다. 아무것도 안 하면 교착이 된다.
-        if (autoAct && !next.over && !timedOut) {
+        const { state: next, timeUp } = tick(s, dt)
+        /*
+         * 명령 시간을 넘기면 아무것도 못 한 채 턴이 넘어간다. 상대는 그대로
+         * 때리므로 손을 놓고 있으면 계속 맞는다 — 교착이 아니라 지는 길이다.
+         */
+        if (timeUp && !next.over && !timedOut) {
           timedOut = true
-          setTimeout(() => act({ type: 'attack' }), 0)
+          setTimeout(() => act({ type: 'pass' }), 0)
         }
         return next
       })
@@ -332,7 +337,7 @@ export default function Battle({
       <section className="bt__field">
         {/* 상대는 하나씩 '정보 + 그림'을 한 덩어리로 묶는다. 따로 두면 어느 상자가
             어느 몬스터 것인지 눈으로 이어지지 않는다. */}
-        <div className="bt__side bt__side--foe">
+        <div className={`bt__side bt__side--foe${phase === 'theirs' ? ' is-acting' : ''}`}>
           {state.enemies.map((e, i) => {
             const props = {
               unit: e,
@@ -349,9 +354,9 @@ export default function Battle({
           })}
         </div>
 
-        <div className="bt__side bt__side--mine">
+        <div className={`bt__side bt__side--mine${phase === 'choose' ? ' is-acting' : ''}`}>
           <div className="bt__unit">
-            <CharacterSprite scale={doughScale} toppings={run.toppings} mood={mood} />
+            <CharacterSprite scale={doughScale} mood={mood} />
             <div className="bt__box bt__box--mine">
               <div className="bt__box-top">
                 <b className="bt__who">{run.name}</b>
@@ -365,10 +370,22 @@ export default function Battle({
         </div>
       </section>
 
+      {/*
+        누구 차례인지. 이 게임에서 가장 자주 확인하는 정보인데 전에는 로그 위
+        11px 회색 글자 한 줄이 전부였다. 세 가지를 함께 바꾼다 —
+        글자('내 차례'/'상대 차례')·색(초록/주황)·자리(왼쪽/오른쪽).
+        하나만 바꾸면 놓치는 사람이 생긴다. 자리가 좌우로 튀는 것은 곁눈에도 걸린다.
+      */}
+      <div
+        className={`bt__whose bt__whose--${phase === 'theirs' ? 'foe' : 'me'}${
+          phase === 'choose' ? ' is-deciding' : ''
+        }`}
+      >
+        <b>{phase === 'theirs' ? '상대 차례' : '내 차례'}</b>
+        {phase === 'choose' && <em>명령을 고르세요</em>}
+      </div>
+
       <section className={`bt__log bt__log--${phase}`} aria-live="polite">
-        <span className="bt__phase">
-          {phase === 'theirs' ? '상대 차례' : phase === 'mine' ? '내 차례' : '명령을 고르세요'}
-        </span>
         {state.log.length === 0 ? (
           <p className="bt__log-empty">
             공격 · 방어 · 기술 · 반죽물{aliveCount > 1 ? ' — ←→ 로 대상 변경' : ''}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { PORTIONS, portionOf, WHEEL, type Portion } from '../core/divide'
+import { PORTIONS, pickPortion, portionOf, type Portion } from '../core/divide'
 import { STAT_LABEL, type Stats } from '../core/character'
 import CharacterSprite from './CharacterSprite'
 import { play } from './sound'
@@ -8,18 +8,25 @@ import './Divide.css'
 /**
  * 분할 — 숙성이 끝난 반죽을 피자 한 판 크기로 떼어낸다. 판의 시작이다.
  *
- * 고르지 않고 돌린다. 실제로도 큰 반죽에서 한 덩이를 떼면 딱 떨어지지 않고,
- * 저울에 올려 봐야 몇 그램인지 안다 — 원판은 그 손맛을 옮긴 것이다.
+ * 고르지 않고 잰다. 전자 저울에 반죽을 올리면 숫자가 어지럽게 튀다가
+ * 한 곳에 멎는다 — 실제로도 큰 반죽에서 한 덩이를 떼면 딱 떨어지지 않고
+ * 저울에 올려 봐야 몇 그램인지 안다.
  *
- * 그래서 네 칸이 서로 값어치가 비슷해야 한다. 고를 수 없는 것에 우열이
- * 있으면 뽑기가 곧 벌칙이 된다. 자리 수는 그 자체로 이득이므로 보정이
+ * 그래서 네 크기가 서로 값어치가 비슷해야 한다. 고를 수 없는 것에 우열이
+ * 있으면 뽑기가 곧 벌칙이 된다. 토핑 자리는 그 자체로 이득이므로 보정이
  * 작은 쪽을 받치고 큰 쪽을 누른다. (divide.ts)
  */
 
-/** 원판이 도는 시간 ⚠ 짧으면 싱겁고 길면 지루하다 */
-const SPIN_MS = 2600
-/** 돌기 시작할 때의 속도(초당 바퀴 수) */
-const SPIN_TURNS = 4.2
+/** 저울이 요동치는 시간 ⚠ 짧으면 싱겁고 길면 지루하다 */
+const WEIGH_MS = 2400
+/**
+ * 이 지점(0~1)부터 숫자가 정답으로 미끄러진다. 그 전까지는 어지럽게 튄다.
+ * 실제 저울도 이런 식이다 — 처음엔 안정 안 된 숫자가 마구 바뀌다가,
+ * 뒤로 갈수록 진짜 무게 근처로 좁혀지며 멎는다.
+ */
+const SETTLE_AT = 0.68
+/** 숫자가 튀는 소리의 최소 간격(ms). 프레임마다 내면 잡음이 된다 */
+const TICK_MS = 70
 
 export default function Divide({
   name,
@@ -28,49 +35,56 @@ export default function Divide({
   name: string
   onDone: (portion: Portion) => void
 }) {
-  const [angle, setAngle] = useState(0)
-  const [phase, setPhase] = useState<'ready' | 'spinning' | 'done'>('ready')
+  const [display, setDisplay] = useState(0)
+  const [phase, setPhase] = useState<'ready' | 'weighing' | 'done'>('ready')
   const [result, setResult] = useState<Portion | null>(null)
   const raf = useRef(0)
-  const spun = useRef(false)
-  // 마지막으로 딸깍인 칸. 칸을 지날 때마다 소리를 내되 같은 칸에서 두 번 내지 않는다.
-  const lastTick = useRef(-1)
+  const weighed = useRef(false)
+  // 튀는 동안의 마지막 숫자. 정답으로 미끄러지기 시작할 때 여기서부터 잇는다.
+  const lastScramble = useRef(0)
+  const settleFrom = useRef<number | null>(null)
+  const lastTickAt = useRef(0)
 
-  const spin = useCallback(() => {
-    if (spun.current) return
-    spun.current = true
-    setPhase('spinning')
-    play('tick')
+  const weigh = useCallback(() => {
+    if (weighed.current) return
+    weighed.current = true
+    setPhase('weighing')
+    settleFrom.current = null
 
-    /*
-     * 어디에 설지를 먼저 정하고, 거기에 맞춰 각도를 만든다.
-     * 각도를 굴린 뒤 어디에 섰는지 읽으면 부동소수 반올림 때문에 경계에서
-     * 한 칸씩 어긋난다 — 화면과 결과가 다르면 그건 조작으로 보인다.
-     */
-    // 칸을 뽑는다. 같은 크기가 두 칸이므로 칸을 고르면 확률이 저절로 맞는다.
-    const idx = Math.floor(Math.random() * WHEEL.length)
-    const landed = portionOf(WHEEL[idx])
-    const slice = 360 / WHEEL.length
-    // 칸 한가운데를 12시(바늘)에 맞춘다. 조금 흔들어 매번 같은 자리에 안 서게 한다.
-    const jitter = (Math.random() - 0.5) * slice * 0.55
-    const target = 360 * Math.round(SPIN_TURNS) - (idx * slice + slice / 2) + jitter
+    const target = pickPortion()
+    const targetGrams = portionOf(target).grams
 
     const started = Date.now()
     const loop = () => {
-      const t = Math.min(1, (Date.now() - started) / SPIN_MS)
-      // 뒤로 갈수록 급히 느려진다. 마지막 한 칸을 남기고 조여드는 맛이 여기서 난다.
-      const eased = 1 - Math.pow(1 - t, 3.4)
-      const a = target * eased
-      setAngle(a)
+      const t = Math.min(1, (Date.now() - started) / WEIGH_MS)
+      let shown: number
 
-      const cell = Math.floor((((-a % 360) + 360) % 360) / slice)
-      if (cell !== lastTick.current) {
-        lastTick.current = cell
-        if (t < 0.98) play('tick')
+      if (t < SETTLE_AT) {
+        /*
+         * 튀는 폭이 앞에서는 넓고(±240g) 뒤로 갈수록 좁아진다(±40g) —
+         * 저울이 흔들리다 점점 진정되는 모양이다.
+         */
+        const spread = 240 * (1 - t / SETTLE_AT) + 40
+        shown = Math.round(targetGrams + (Math.random() * 2 - 1) * spread)
+        shown = Math.max(150, Math.min(600, shown))
+        lastScramble.current = shown
+      } else {
+        if (settleFrom.current === null) settleFrom.current = lastScramble.current
+        const u = (t - SETTLE_AT) / (1 - SETTLE_AT)
+        const eased = 1 - Math.pow(1 - u, 3)
+        shown = Math.round(settleFrom.current + (targetGrams - settleFrom.current) * eased)
+      }
+      setDisplay(shown)
+
+      const now = Date.now()
+      if (now - lastTickAt.current > TICK_MS) {
+        lastTickAt.current = now
+        if (t < 0.97) play('tick')
       }
 
       if (t >= 1) {
-        setResult(landed.id)
+        setDisplay(targetGrams)
+        setResult(target)
         setPhase('done')
         play('select')
         return
@@ -86,15 +100,14 @@ export default function Divide({
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' && e.key !== ' ') return
       e.preventDefault()
-      if (phase === 'ready') spin()
+      if (phase === 'ready') weigh()
       else if (phase === 'done' && result) onDone(result)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [phase, result, spin, onDone])
+  }, [phase, result, weigh, onDone])
 
   const got = result ? portionOf(result) : null
-  const slice = 360 / WHEEL.length
 
   return (
     <div className="dv">
@@ -103,62 +116,41 @@ export default function Divide({
         <p>
           {got ? (
             <>
-              <b>{got.grams}g</b> 을 떼어냈습니다. 지름 {got.cm}cm 짜리 한 판입니다.
+              <b>{got.label}</b> 사이즈를 떼어냈습니다. {got.grams}g 짜리 반죽입니다.
             </>
           ) : (
-            <>큰 반죽에서 한 판 크기를 떼어냅니다. 뗀 무게가 자리 수를 정합니다.</>
+            <>큰 반죽에서 한 판 크기를 떼어냅니다. 판이 클수록 토핑이 늘어납니다.</>
           )}
         </p>
       </header>
 
       <div className="dv__stage">
-        <div className="dv__dough">
-          <CharacterSprite scale={0.7} />
+        <div className="dv__scale">
+          <div className={`dv__plate${phase === 'weighing' ? ' is-weighing' : ''}`}>
+            <CharacterSprite scale={0.7} />
+          </div>
           <b className="dv__name">{name}</b>
-        </div>
-
-        <div className="dv__wheelbox">
-          <span className="dv__needle" aria-hidden="true" />
-          <div
-            className={`dv__wheel${phase === 'spinning' ? ' is-spinning' : ''}`}
-            style={{ rotate: `${angle}deg` }}
-            role="img"
-            aria-label={got ? `${got.label} ${got.grams}그램` : '반죽 저울판'}
-          >
-            {WHEEL.map((id, i) => {
-              const p = portionOf(id)
-              return (
-              <span
-                key={i}
-                className={`dv__slice dv__slice--${PORTIONS.findIndex((x) => x.id === id)}${
-                  result === id ? ' is-won' : ''
-                }`}
-                style={{ rotate: `${i * slice + slice / 2}deg` }}
-              >
-                {/*
-                  글자는 판을 따라 눕지 않는다. 칸 각도와 판이 돈 각도를 함께
-                  되돌려 언제나 똑바로 선다 — 아래쪽 두 칸이 거꾸로 서면
-                  돌아가는 동안 아무것도 못 읽는다.
-                */}
-                <b style={{ rotate: `${-(i * slice + slice / 2) - angle}deg` }}>
-                  {p.label}
-                  <em>{p.grams}g</em>
-                </b>
-              </span>
-              )
-            })}
+          <div className="dv__body">
+            <div
+              className={`dv__screen${phase === 'done' ? ' is-done' : ''}`}
+              role="img"
+              aria-label={got ? `${got.label} 사이즈 ${got.grams}그램` : '전자 저울'}
+            >
+              <span className="dv__screen-num">{display}</span>
+              <span className="dv__screen-unit">g</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 어느 칸이 무엇을 주는지 돌리기 전부터 보인다. 몰라서 놀라는 것과 알고 기다리는 것은 다르다. */}
+      {/* 어느 크기가 무엇을 주는지 재기 전부터 보인다. 몰라서 놀라는 것과 알고 기다리는 것은 다르다. */}
       <div className="dv__table">
         {PORTIONS.map((p) => (
           <div key={p.id} className={`dv__row${result === p.id ? ' is-won' : ''}`}>
             <b className="dv__row-label">{p.label}</b>
-            <span className="dv__row-g">{p.grams}g</span>
+            <span className="dv__row-grams">{p.grams}g</span>
             <span className="dv__row-slot">
-              자리 <b>{p.slots}</b>
+              토핑 <b>{p.slots}</b>
             </span>
             <Diff gain={p.gain} />
           </div>
@@ -173,8 +165,8 @@ export default function Divide({
             둥글리기로 →
           </button>
         ) : (
-          <button className="dv__go" onClick={spin} disabled={phase === 'spinning'}>
-            {phase === 'spinning' ? '떼어내는 중…' : '반죽 떼어내기'}
+          <button className="dv__go" onClick={weigh} disabled={phase === 'weighing'}>
+            {phase === 'weighing' ? '재는 중…' : '반죽 떼어내기'}
           </button>
         )}
         <p className="dv__hint">Enter / Space</p>

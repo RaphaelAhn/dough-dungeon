@@ -36,10 +36,13 @@
 /* --- 캐릭터 선택 --- */
 .cc__stage {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
 }
 
 .cc__card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -56,6 +59,37 @@
   border-color: var(--accent);
   transform: translateY(-4px);
   box-shadow: 0 0 28px rgba(187, 68, 32, 0.18);
+}
+
+/*
+ * 잠긴 카드는 골라도(is-on) 밝은 "고를 수 있다" 색을 안 준다 — 커서가
+ * 가 있는 것과 실제로 시작할 수 있는 것은 다른 신호라, 같은 초록으로
+ * 켜지면 골라진 줄 알고 이름을 쓰다가 버튼에서야 막힌다.
+ */
+.cc__card.is-locked {
+  filter: grayscale(0.85) brightness(0.5);
+}
+.cc__card.is-locked.is-on {
+  filter: grayscale(0.5) brightness(0.75);
+  border-color: var(--line-strong);
+  transform: translateY(-4px);
+  box-shadow: none;
+}
+.cc__card.is-locked:not(.is-on):hover,
+.cc__card.is-locked:not(.is-on):focus-visible {
+  filter: grayscale(0.7) brightness(0.6);
+}
+
+.cc__lock {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: var(--bg-2);
+  border: 1px solid var(--line-strong);
+  padding: 1px 6px;
 }
 
 /*
@@ -217,4 +251,10 @@
   font-size: 12px;
   color: var(--muted);
   opacity: 0.6;
+}
+
+@media (max-width: 480px) {
+  .cc__card {
+    padding: 10px 16px 8px;
+  }
 }

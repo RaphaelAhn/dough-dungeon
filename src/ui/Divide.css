@@ -1,4 +1,4 @@
-/* 분할 — 원판을 돌려 한 판 크기를 떼어낸다 */
+/* 분할 — 전자 저울에 반죽을 올려 한 판 크기를 잰다 */
 .dv {
   height: 100%;
   display: flex;
@@ -6,8 +6,8 @@
   align-items: center;
   justify-content: safe center;
   overflow-y: auto;
-  gap: 12px;
-  padding: 18px 20px;
+  gap: 20px;
+  padding: 22px 20px;
   text-align: center;
 }
 
@@ -15,114 +15,121 @@
   font-size: 25px;
 }
 .dv__head p {
-  margin-top: 5px;
+  margin-top: 13px;
   font-size: 13px;
   color: var(--muted);
 }
 
 .dv__stage {
+  padding-top: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 26px;
-  flex-wrap: wrap;
 }
-.dv__dough {
+
+/* --- 저울 --- */
+.dv__scale {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-}
-.dv__name {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* --- 원판 --- */
-.dv__wheelbox {
-  position: relative;
-  width: 228px;
-  height: 228px;
-}
-
-/* 바늘. 12시에 고정이고 판이 그 아래에서 돈다. */
-.dv__needle {
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  translate: -50% 0;
-  z-index: 3;
-  width: 0;
-  height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-top: 16px solid var(--accent);
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
 }
 
 /*
- * ⚠ 회전은 transform 이 아니라 독립 속성 rotate 로 준다.
- *   매 프레임 값이 바뀌므로 transition 도 걸지 않는다 — 걸면 화면이 값을
- *   못 따라간다. 전투 시간 막대에서 똑같이 당한 적이 있다.
+ * 접시. 도우가 이 위에 서 있다. "화면이 그대로면 심심하다" — 늘 살살
+ * 위아래로 떠 있는다. transform 대신 독립 속성 translate 를 쓴다 —
+ * CharacterSprite 안쪽에서도 transform 을 쓰는 애니메이션(표정 등)이 있어
+ * 겹쳐 쓰면 한쪽이 지워진다.
  */
-.dv__wheel {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 5px solid var(--line-strong);
-  /*
-   * 여덟 칸. 같은 크기끼리 같은 색이라 판을 보면 짝이 마주 보고 있는 게
-   * 보인다 — 네 칸을 두 번 돌린 배치라는 것이 색만으로 읽힌다.
-   */
-  background: conic-gradient(
-    var(--taste-mild-dim) 0deg 45deg,
-    var(--taste-tangy-dim) 45deg 90deg,
-    var(--taste-herbal-dim) 90deg 135deg,
-    var(--taste-spicy-dim) 135deg 180deg,
-    var(--taste-mild-dim) 180deg 225deg,
-    var(--taste-tangy-dim) 225deg 270deg,
-    var(--taste-herbal-dim) 270deg 315deg,
-    var(--taste-spicy-dim) 315deg 360deg
-  );
-  box-shadow:
-    inset 0 0 0 3px rgba(255, 255, 255, 0.35),
-    0 4px 14px rgba(150, 110, 60, 0.28);
+.dv__plate {
+  position: relative;
+  z-index: 1;
+  padding: 6px 22px 14px;
+  animation: dv-bob 2.6s ease-in-out infinite;
 }
-.dv__wheel.is-spinning {
+.dv__plate.is-weighing {
+  /* 재는 동안은 좀 더 들썩인다 — 눈으로도 "지금 재는 중"이 느껴지게 */
+  animation-duration: 0.85s;
+}
+.dv__plate::after {
+  /* 접시 자체. 타원으로 눌러 그릇처럼 보이게 한다 */
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  translate: -50% 0;
+  width: 118px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+  border: 3px solid var(--line-strong);
   box-shadow:
-    inset 0 0 0 3px rgba(255, 255, 255, 0.35),
-    0 0 22px rgba(187, 68, 32, 0.35);
+    inset 0 3px 0 rgba(255, 255, 255, 0.5),
+    0 3px 6px rgba(150, 110, 60, 0.25);
+}
+.dv__plate > * {
+  position: relative;
+  z-index: 1;
 }
 
-/* 칸 라벨. 실제 원판처럼 판과 같이 돈다. */
-.dv__slice {
-  position: absolute;
-  inset: 0;
+@keyframes dv-bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -6px; }
 }
-.dv__slice b {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  translate: -50% 0;
+
+.dv__name {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* 저울 몸통 — 접시를 받치고 서서, 잰 숫자를 화면에 띄운다 */
+.dv__body {
+  margin-top: 10px;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+  border: 3px solid var(--line-strong);
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(150, 110, 60, 0.22);
+}
+
+/*
+ * LCD 화면. 여기만 따뜻한 팔레트에서 벗어난다 — 전자 기기는 저 자체로
+ * 색이 다른 물건이라, 오히려 튀어야 "화면"으로 읽힌다.
+ */
+.dv__screen {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* 여덟 칸이라 한 칸이 45도뿐이다. 글자가 옆 칸을 침범하지 않게 폭을 묶는다. */
-  width: 58px;
-  line-height: 1.1;
-  font-size: 11px;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  min-width: 108px;
+  padding: 9px 14px;
+  background: #232d18;
+  border: 2px solid #131a0c;
+  border-radius: 6px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.15s;
+}
+.dv__screen.is-done {
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.45),
+    0 0 0 3px rgba(187, 68, 32, 0.4);
+  animation: dv-lock 0.3s ease-out;
+}
+@keyframes dv-lock {
+  0% { scale: 1.08; }
+  100% { scale: 1; }
+}
+.dv__screen-num {
+  font-size: 27px;
   font-weight: 700;
-  white-space: nowrap;
-  color: #3b2412;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+  color: #a8e890;
+  text-shadow: 0 0 7px rgba(168, 232, 144, 0.55);
 }
-.dv__slice b em {
-  font-style: normal;
-  font-size: 10px;
-  opacity: 0.8;
-}
-.dv__slice.is-won b {
-  color: var(--accent);
+.dv__screen-unit {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7fbf6c;
 }
 
 /* --- 어느 칸이 무엇을 주는지 --- */
@@ -151,7 +158,7 @@
   text-align: left;
   font-size: 13px;
 }
-.dv__row-g {
+.dv__row-grams {
   width: 46px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -219,23 +226,35 @@
 }
 
 @media (max-height: 760px) {
+  /* 낮은 화면에서는 좁히되, 벌려 둔 것이 도로 붙지는 않게 한다 */
   .dv {
-    gap: 8px;
-    padding: 10px 20px;
+    gap: 13px;
+    padding: 12px 20px;
   }
   .dv__head h2 {
     font-size: 20px;
   }
-  .dv__wheelbox {
-    width: 186px;
-    height: 186px;
+  .dv__head p {
+    margin-top: 9px;
+  }
+  .dv__stage {
+    padding-top: 2px;
+  }
+  .dv__plate::after {
+    width: 96px;
+    height: 28px;
+  }
+  .dv__screen-num {
+    font-size: 23px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dv__wheel.is-spinning {
-    box-shadow:
-      inset 0 0 0 3px rgba(255, 255, 255, 0.35),
-      0 4px 14px rgba(150, 110, 60, 0.28);
+  .dv__plate,
+  .dv__plate.is-weighing {
+    animation: none;
+  }
+  .dv__screen.is-done {
+    animation: none;
   }
 }

@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import TitleScreen from './ui/TitleScreen'
+import Prologue from './ui/Prologue'
 import CharacterCreate from './ui/CharacterCreate'
 import DiceRoll from './ui/DiceRoll'
 import Divide from './ui/Divide'
@@ -9,8 +10,10 @@ import Battle from './ui/Battle'
 import Reward from './ui/Reward'
 import Result, { type ResultKind } from './ui/Result'
 import Recruit from './ui/Recruit'
+import PizzaBake from './ui/PizzaBake'
 import Codex from './ui/Codex'
 import { play } from './ui/sound'
+import { setMusic, type MusicLevel } from './ui/bgm'
 import { DICE, type Face } from './core/dice'
 import type { Portion } from './core/divide'
 import type { Stretch } from './core/forming'
@@ -28,12 +31,13 @@ import {
   type Run,
 } from './core/run'
 import { rollEncounter, type Encounter, type EnemyDef } from './core/enemy'
-import { toppingStats } from './core/topping'
+import { MEATS, SAUCES, toppingStats, VEGGIES } from './core/topping'
 import { CODEX_TOTAL, discoveredCount, fullName, loadCodex, recordPizza } from './core/codex'
 import './App.css'
 
 type Screen =
   | 'title'
+  | 'prologue'
   | 'character'
   | 'dice'
   | 'divide'
@@ -42,10 +46,33 @@ type Screen =
   | 'battle'
   | 'recruit'
   | 'reward'
+  | 'bake'
   | 'result'
   | 'codex'
   | 'howto'
 
+
+/**
+ * ⚠ 임시 디버그용 — 보스를 잡지 않고도 화덕 연출(PizzaBake)을 바로 볼 수
+ * 있게 한다. 실제 진행 없이 토핑·소스를 손으로 채운 가짜 런을 만든다.
+ * 제출 전에 이 함수와 아래 키 리스너를 지운다.
+ */
+function debugBakePreviewRun(): Run {
+  let run = createRun('디버그', 3, 'large', 70, 'even')
+  const add = (t: (typeof VEGGIES)[number]) => {
+    run = addTopping(run, t, toppingStats(t))
+  }
+  const pick = (list: typeof VEGGIES, name: string) => list.find((t) => t.name === name)
+  ;[
+    pick(VEGGIES, '방울토마토'),
+    pick(MEATS, '페퍼로니'),
+    pick(VEGGIES, '바질'),
+    pick(VEGGIES, '가지'),
+  ].forEach((t) => t && add(t))
+  run = bake({ ...run, stage: BAKE_STAGE })
+  const sauce = pick(SAUCES, '토마토 소스')
+  return { ...run, stage: FINAL_STAGE, toppings: sauce ? [...run.toppings, sauce] : run.toppings }
+}
 
 // ponytail: 화면 수가 적어 라우터 없이 상태 하나로 전환한다.
 export default function App() {
@@ -64,6 +91,25 @@ export default function App() {
   // 결과 화면에 보여 줄 완성작 이름과 도감 진행도
   const [madeName, setMadeName] = useState('')
   const [found, setFound] = useState(() => discoveredCount(loadCodex()))
+
+  /*
+   * 배경음의 두께는 화면이 아니라 판의 진행이 정한다. 층이 바뀔 때만 알려 주면
+   * 곡은 끊기지 않고 다음 마디부터 두꺼워진다.
+   */
+  const level = musicLevel(screen, run)
+  useEffect(() => setMusic(level), [level])
+
+  // ⚠ 임시 디버그 단축키 — 타이틀에서 P 를 누르면 화덕 연출로 바로 간다. 제출 전 삭제.
+  useEffect(() => {
+    if (screen !== 'title') return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'p' && e.key !== 'P') return
+      setRun(debugBakePreviewRun())
+      setScreen('bake')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [screen])
 
   const back = useCallback(() => setScreen('title'), [])
 
@@ -123,13 +169,13 @@ export default function App() {
         const sauce = enc.enemies.find((e) => e.topping.kind === 'sauce')?.topping
         const done: Run = sauce ? { ...healed, toppings: [...healed.toppings, sauce] } : healed
 
-        if (done.pizza) {
-          setMadeName(fullName(done.pizza, done.toppings))
-          setFound(discoveredCount(recordPizza(done.pizza, done.toppings)))
-        }
+        /*
+         * 도감 기록은 여기서 바로 하지 않는다. 화덕 연출(PizzaBake)이 "화덕에서
+         * 꺼내며 완성된 피자를 보여준 다음" 기록하는 순서라, 결과 화면으로
+         * 넘어가기 전 그 연출부터 거친다.
+         */
         setRun(done)
-        setResult('clear')
-        setScreen('result')
+        setScreen('bake')
         return
       }
 
@@ -157,6 +203,17 @@ export default function App() {
 
   const onRewardDone = useCallback((next: Run) => advance(next), [advance])
 
+  /** 화덕 연출이 끝난 뒤 — 이제야 도감에 적고 결과 화면으로 간다 */
+  const onBakeDone = useCallback(() => {
+    // ⚠ '디버그' 는 위 미리보기 단축키가 쓰는 이름이다. 실제 도감을 더럽히지 않는다.
+    if (run?.pizza && run.name !== '디버그') {
+      setMadeName(fullName(run.pizza, run.toppings))
+      setFound(discoveredCount(recordPizza(run.pizza, run.toppings)))
+    }
+    setResult('clear')
+    setScreen('result')
+  }, [run])
+
   const onEnd = useCallback((reason: 'lose' | 'timeout') => {
     setMadeName('')
     setResult(reason)
@@ -164,7 +221,11 @@ export default function App() {
   }, [])
 
   if (screen === 'title') {
-    return <TitleScreen onSelect={(a) => setScreen(a === 'start' ? 'character' : a)} />
+    return <TitleScreen onSelect={(a) => setScreen(a === 'start' ? 'prologue' : a)} />
+  }
+
+  if (screen === 'prologue') {
+    return <Prologue onDone={() => setScreen('character')} />
   }
 
   if (screen === 'character') {
@@ -200,6 +261,10 @@ export default function App() {
     return <Reward key={run.stage} run={run} onDone={onRewardDone} />
   }
 
+  if (screen === 'bake' && run) {
+    return <PizzaBake run={run} onDone={onBakeDone} />
+  }
+
   if (screen === 'result' && run) {
     return <Result kind={result} run={run} madeName={madeName} found={found} onBack={back} />
   }
@@ -220,6 +285,29 @@ export default function App() {
   )
 }
 
+/**
+ * 도우를 자를 때까지가 준비곡, 그 뒤로는 모험곡이다. 그리고 흰 도우가 피자가
+ * 되어 가는 만큼 곡이 두꺼워진다(bgm.ts).
+ *
+ * 결과 화면만 곡을 끈다 — 완성·상함·타 버림은 5초 넘게 끄는 소리라
+ * 그 위에 배경음이 깔리면 무엇으로 끝났는지가 안 들린다.
+ */
+const PREP_SCREENS: Screen[] = ['title', 'character', 'dice', 'divide', 'codex', 'howto']
+
+function musicLevel(screen: Screen, run: Run | null): MusicLevel {
+  if (screen === 'result') return 0
+  // 프롤로그는 소리 연출(콤바인·대사)이 자리를 다 쓴다 — 곡이 덮으면 안 된다
+  if (screen === 'prologue') return 0
+  // 화덕 연출도 마찬가지다 — 재료 놓는 소리·굽는 소리가 주인공이다
+  if (screen === 'bake') return 0
+  if (PREP_SCREENS.includes(screen)) return 1
+  // 둥글리기·성형은 아직 전투가 아니지만 도우는 이미 잘렸다. 여기서 곡이 갈린다.
+  if (!run) return 2
+  if (run.stage >= FINAL_STAGE) return 4
+  // 굽기를 지났다 — 이제 도우가 아니라 피자다
+  return run.pizza ? 3 : 2
+}
+
 function HowToPanel() {
   return (
     <>
@@ -231,7 +319,8 @@ function HowToPanel() {
         </li>
         <li>
           전투는 턴제입니다. <b>공격 / 방어 / 기술 / 반죽물</b> 중 하나를 고릅니다. 명령은{' '}
-          <b>10초</b> 안에 골라야 하며, 넘기면 자동으로 공격합니다.
+          <b>10초</b> 안에 골라야 하며, 넘기면 <b>그 턴은 아무것도 하지 못합니다.</b> 상대는
+          그대로 공격하므로 가만히 있으면 계속 맞습니다.
         </li>
         <li>
           한 라운드는 <b>100초</b>, 보스는 <b>150초</b> 안에 끝내야 합니다. 시간이 다하면 반죽이

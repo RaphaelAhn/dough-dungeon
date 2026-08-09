@@ -53,9 +53,14 @@ export default function Recruit({
         </p>
       </header>
 
-      {/* 지금 도우가 어떤 모습인지 보고 고른다 */}
+      {/*
+        도우는 맨몸 그대로 보여 준다. 실제 피자는 소스 → 토핑 순인데, 여기서
+        재료를 바로 얹어 보이면 소스도 없이 토핑부터 올라간 것처럼 보인다.
+        무엇을 얼마나 모았는지는 숫자(자리 X/Y)로만 알려 주고, 실제 모습은
+        보스를 잡아 소스를 얻은 뒤 완성 연출(PizzaBake)에서 한 번에 보여 준다.
+      */}
       <div className="rc__dough">
-        <CharacterSprite scale={1} toppings={run.toppings} />
+        <CharacterSprite scale={1} />
       </div>
 
       <div className="rc__cards">

@@ -4,14 +4,14 @@
   margin: 0 auto;
   display: grid;
   /*
-   * 상단 · 진행바 · 전장 · 로그 · 턴타이머 · 명령
+   * 상단 · 진행바 · 전장 · 차례 · 로그 · 턴타이머 · 명령
    *
    * 전장 행은 minmax(0, 1fr) 이다. 최소 200px 로 두었더니 화면이 낮을 때
    * 그 행이 안 줄어들어 아래 로그·명령 위로 그림이 삐져나왔다 — 보스전처럼
    * 기술이 일곱 개라 명령 영역이 높아지면 도우 정보 상자가 로그를 덮었다.
    * 줄어들 수 있게 두고, 대신 아래 낮은 화면 규칙에서 여백을 걷는다.
    */
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto;
   gap: 10px;
   padding: 16px 20px 20px;
   /* 화덕 불빛이 위에서 내려온다. 보스로 갈수록 불이 세진다. */
@@ -146,6 +146,7 @@
   padding: 8px 12px;
   background: var(--panel);
   border: 2px solid var(--line-strong);
+  transition: border-color 0.15s, background 0.15s;
 }
 .bt__box--foe {
   border-bottom-width: 5px;
@@ -472,25 +473,128 @@
 }
 
 /* --- 차례 표시 --- */
-.bt__phase {
-  align-self: flex-start;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  color: var(--muted);
-  margin-bottom: 4px;
+/*
+ * 띠 하나가 화면을 가로지른다. 글자·색·자리를 한꺼번에 바꾼다 —
+ * 색만 바꾸면 색을 못 가리는 사람이 못 읽고, 글자만 바꾸면 읽기 전에는 모른다.
+ * 굵은 세로줄이 내 차례에는 왼쪽(내 도우가 선 쪽), 상대 차례에는 오른쪽
+ * (상대가 선 쪽)에 붙어 전장의 좌우 구도와 그대로 맞물린다.
+ */
+.bt__whose {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  transition: border-color 0.15s, background 0.15s;
 }
-/* 누구 차례인지 색으로도 알린다 — 로그를 읽지 않아도 구분된다 */
+.bt__whose b {
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+.bt__whose em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/*
+ * "내 차례" 는 두 단계로 나뉜다 — choose(고르는 중)와 mine(고른 행동이
+ * 재생되는 중). 강조(그라데이션·초록 테두리·초록 글자)는 choose 일 때만
+ * 켠다. mine 은 이미 정해진 것이 재생되는 시간이라 "지금 골라야 한다"는
+ * 신호를 계속 내보내면 거짓말이 된다 — 그래서 is-deciding 이 없으면
+ * 자리(왼쪽)만 지키고 색은 은은한 기본값으로 물러난다.
+ *
+ * 상대 쪽은 나누지 않는다. 상대에게는 '고르는 중' 이 따로 없다 — AI 는
+ * 즉시 정하고 그 결과가 theirs 단계에서 통째로 재생되므로, theirs 자체가
+ * 상대의 유일한 활성 구간이다.
+ */
+.bt__whose--me {
+  justify-content: flex-start;
+  border-left: 7px solid var(--line);
+}
+.bt__whose--me b {
+  color: var(--text);
+}
+.bt__whose--me.is-deciding {
+  border-left-color: var(--sky);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sky) 22%, var(--panel)),
+    var(--panel) 55%
+  );
+}
+.bt__whose--me.is-deciding b {
+  color: var(--sky);
+}
+/* 상대 차례에는 글자가 통째로 오른쪽으로 건너간다 */
+.bt__whose--foe {
+  justify-content: flex-end;
+  border-right: 7px solid var(--accent);
+  background: linear-gradient(
+    270deg,
+    color-mix(in srgb, var(--accent) 22%, var(--panel)),
+    var(--panel) 55%
+  );
+}
+.bt__whose--foe b {
+  color: var(--accent);
+}
+
+/*
+ * 지금 결정이 필요한 쪽의 정보 상자에 테두리를 남긴다. 띠를 안 봐도 눈이
+ * 그리로 간다. 반대쪽을 흐리게 하지는 않는다 — 맞고 있는 쪽을 흐리게 하면
+ * 정작 깎이는 숫자가 안 보인다.
+ *
+ * 내 쪽은 choose 일 때만 켠다(bt__side--mine.is-acting 은 phase==='choose'
+ * 에서만 붙는다) — mine 단계는 이미 정한 행동이 재생될 뿐이라 "결정하라"는
+ * 신호가 필요 없다. 상대 쪽은 나눌 필요가 없다 — theirs 가 상대의 유일한
+ * 활성 구간이다.
+ *
+ * 차례 배너(.bt__whose)와 같은 언어를 쓴다 — 굵은 테두리가 선 모서리에서
+ * 색이 짙게 번져 나와 가운데에서 사그라든다. 상자는 굵은 테두리가 모서리에
+ * 있어(내 쪽 위+왼쪽, 상대 쪽 아래+오른쪽) 띠처럼 좌우가 아니라 대각선으로 번진다.
+ */
+.bt__side--mine.is-acting .bt__box {
+  border-color: var(--sky);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--sky) 22%, var(--panel)),
+    var(--panel) 60%
+  );
+}
+.bt__side--foe.is-acting .bt__box:not(.is-dead) {
+  border-color: var(--accent);
+  background: linear-gradient(
+    315deg,
+    color-mix(in srgb, var(--accent) 22%, var(--panel)),
+    var(--panel) 60%
+  );
+}
+
+/* --- 로그 --- */
+.bt__log {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  /* 두 줄치를 늘 잡아 둔다. 줄 수에 따라 높이가 뛰면 아래 버튼이 흔들린다. */
+  min-height: 46px;
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  background: var(--bg-2);
+  border-left: 4px solid var(--line);
+}
+.bt__log-empty {
+  color: var(--muted);
+}
+/* 누구 차례인지 로그 쪽에서도 한 번 더 — 띠와 같은 색을 쓴다 */
 .bt__log--mine {
   border-left-color: var(--sky);
 }
-.bt__log--mine .bt__phase {
-  color: var(--sky);
-}
 .bt__log--theirs {
   border-left-color: var(--accent);
-}
-.bt__log--theirs .bt__phase {
-  color: var(--accent);
 }
 
 .bt__cmds.is-locked {
@@ -547,6 +651,17 @@
 @media (max-height: 680px) {
   .bt__field {
     gap: 8px;
+  }
+  /* 차례 띠는 줄이되 없애지는 않는다. 이걸 지우면 고칠 이유가 사라진다. */
+  .bt__whose {
+    padding: 3px 10px;
+  }
+  .bt__whose b {
+    font-size: 13px;
+  }
+  .bt__log {
+    min-height: 38px;
+    padding: 4px 10px;
   }
   .bt__box {
     padding: 5px 10px;

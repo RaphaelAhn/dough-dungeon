@@ -1,0 +1,122 @@
+/* 완성된 피자 — 크러스트 · 소스 · 토핑 · 치즈. PizzaBake·Result 가 같이 쓴다 */
+.pa {
+  position: relative;
+  border-radius: 50%;
+}
+
+.pa__crust {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(165deg, #f6e7cb, #e3c996);
+  border: 15px solid var(--line-strong);
+  box-shadow:
+    inset -8px -12px 18px -8px rgba(150, 110, 60, 0.3),
+    0 6px 16px rgba(150, 110, 60, 0.25);
+  transition: background 0.5s ease, border-color 0.5s ease;
+}
+/* 구워진 뒤 — 크러스트가 노릇하게 짙어진다 */
+.pa.is-baked .pa__crust {
+  background: linear-gradient(165deg, #e3b568, #c98a3c);
+  border-color: #a9793d;
+}
+
+.pa__sauce {
+  position: absolute;
+  inset: 15px;
+  border-radius: 50%;
+  z-index: 1;
+  opacity: 0;
+  scale: 0;
+  transform-origin: 50% 50%;
+  transition: opacity 0.5s ease, scale 0.6s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+.pa__sauce.is-on {
+  opacity: 0.92;
+  scale: 1;
+}
+.pa__sauce--mild {
+  background: #f6eccd;
+}
+.pa__sauce--spicy {
+  background: #c8402a;
+}
+.pa__sauce--tangy {
+  background: #d9552f;
+}
+.pa__sauce--herbal {
+  background: #5f9c52;
+}
+.pa__sauce--rich {
+  background: #8a5f38;
+}
+
+/* 재료 — 해바라기씨 배열로 겹치지 않고 고르게 흩는다(PizzaArt.tsx scatterPoint) */
+.pa__top {
+  position: absolute;
+  translate: -50% -50%;
+  z-index: 2;
+  animation: pa-drop 0.32s cubic-bezier(0.34, 1.4, 0.4, 1) backwards;
+}
+@keyframes pa-drop {
+  from {
+    scale: 0.2;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+.pa__top--mild {
+  --lit: var(--taste-mild-lit);
+  --dim: var(--taste-mild-dim);
+}
+.pa__top--spicy {
+  --lit: var(--taste-spicy-lit);
+  --dim: var(--taste-spicy-dim);
+}
+.pa__top--tangy {
+  --lit: var(--taste-tangy-lit);
+  --dim: var(--taste-tangy-dim);
+}
+.pa__top--herbal {
+  --lit: var(--taste-herbal-lit);
+  --dim: var(--taste-herbal-dim);
+}
+.pa__top--rich {
+  --lit: var(--taste-rich-lit);
+  --dim: var(--taste-rich-dim);
+}
+
+/* 치즈 — 반투명하게 덮어서 아래 소스·재료가 비쳐 보인다(듬뿍 올렸어도 뭘 올렸는지 보이게) */
+.pa__cheese {
+  position: absolute;
+  inset: 15px;
+  border-radius: 50%;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  background:
+    radial-gradient(circle at 30% 32%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 40%),
+    radial-gradient(circle at 68% 62%, rgba(214, 160, 60, 0.45), rgba(214, 160, 60, 0) 34%),
+    radial-gradient(circle at 44% 78%, rgba(214, 160, 60, 0.4), rgba(214, 160, 60, 0) 28%),
+    linear-gradient(160deg, #f5d98a, #e8bf62);
+}
+.pa__cheese.is-on {
+  opacity: 0.55;
+}
+.pa.is-baked .pa__cheese.is-on {
+  opacity: 0.82;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pa__crust,
+  .pa__sauce,
+  .pa__cheese {
+    transition: none;
+  }
+  .pa__top {
+    animation: none;
+  }
+}

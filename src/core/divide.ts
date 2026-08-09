@@ -19,10 +19,11 @@ export type Portion = 'small' | 'medium' | 'large' | 'huge'
 
 export type PortionSpec = {
   id: Portion
-  /** 떼어낸 반죽 무게(g). 화면에 그대로 보여 준다 */
+  /** 떼어낸 반죽 무게(g). 저울이 재는 것이 바로 이 값이라 화면에 그대로 보여 준다 */
   grams: number
-  /** 다 폈을 때의 지름(cm) */
+  /** 다 폈을 때의 지름(cm). 저울은 무게를 재지 지름을 재지 않는다 — 화면에는 안 나온다 */
   cm: number
+  /** 피자집에서 쓰는 사이즈 이름 */
   label: string
   /** 이 크기가 감당하는 재료 자리 */
   slots: number
@@ -51,7 +52,7 @@ export const PORTIONS: readonly PortionSpec[] = [
     id: 'small',
     grams: 220,
     cm: 25,
-    label: '작게',
+    label: '스몰',
     slots: 4,
     // 얇으니 가볍고 빠르다. 대신 담을 자리가 적다.
     gain: { spd: 4, luk: 2, atk: 1 },
@@ -61,7 +62,7 @@ export const PORTIONS: readonly PortionSpec[] = [
     id: 'medium',
     grams: 290,
     cm: 30,
-    label: '보통',
+    label: '레귤러',
     slots: 5,
     gain: { hp: 8, spd: 1 },
     desc: '무난하다. 어느 쪽으로도 치우치지 않는다.',
@@ -70,7 +71,7 @@ export const PORTIONS: readonly PortionSpec[] = [
     id: 'large',
     grams: 400,
     cm: 35,
-    label: '크게',
+    label: '라지',
     slots: 6,
     // 두꺼우니 잘 버틴다. 대신 무거워 손이 늦다.
     gain: { hp: 15, atk: 1, spd: -5 },
@@ -80,7 +81,7 @@ export const PORTIONS: readonly PortionSpec[] = [
     id: 'huge',
     grams: 520,
     cm: 40,
-    label: '아주 크게',
+    label: '패밀리',
     slots: 7,
     /*
      * 자리가 가장 많은 대신 가장 굼뜨다. 손놀림을 크게 깎아 두어야
@@ -96,24 +97,12 @@ export function portionOf(id: Portion): PortionSpec {
 }
 
 /**
- * 원판의 칸 배치. 여덟 칸에 네 크기를 두 번씩 돌린다.
+ * 저울이 잴 무게를 뽑는다. 넷 중 하나를 똑같은 확률로 고른다.
  *
- * 네 칸짜리 원판은 한 칸이 90도라 판이 큼직하게 뚝뚝 끊긴다. 여덟 칸이면
- * 도는 동안 칸이 자주 지나가 훨씬 원판답고, 딸깍이는 소리도 촘촘해진다.
- *
- * ⚠ 같은 크기를 이웃에 두지 않는다. 붙여 두면 두 칸이 한 칸처럼 보여
- *   결국 네 칸짜리로 되돌아간다 — 바늘이 어디 서든 옆 칸도 같은 값이면
- *   돌린 의미가 없다. ABCD 를 두 번 돌리면 어느 칸도 제 짝과 안 붙는다.
- *
- * 각 크기가 두 칸씩이라 확률은 그대로 25% 다. 균형(76·77·77·77%)은 안 바뀐다.
+ * 예전엔 원판이라 여덟 칸(네 크기를 두 번씩)에 나눠 돌렸다 — 같은 크기가
+ * 이웃하면 두 칸이 한 칸처럼 보여 돌린 의미가 없어지기 때문이다. 저울에는
+ * 그 문제가 없다. 볼 칸이 없으니 넷 중 하나를 바로 고르면 그걸로 25% 다.
  */
-export const WHEEL: readonly Portion[] = [
-  'small',
-  'medium',
-  'large',
-  'huge',
-  'small',
-  'medium',
-  'large',
-  'huge',
-]
+export function pickPortion(rng: () => number = Math.random): Portion {
+  return PORTIONS[Math.floor(rng() * PORTIONS.length)].id
+}

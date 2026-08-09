@@ -1,0 +1,231 @@
+/*
+ * 프롤로그 — 밀밭(field) → 콤바인이 다가옴(harvest) → 캄캄한 반죽(dark).
+ *
+ * --pl-* 는 이 화면만의 색이다. 전역 --sky 는 이름과 달리 초록(바질) 값이라
+ * 실제 하늘색으로 못 쓴다 — 새 이름으로 따로 둔다. 팔레트는 index.css 의
+ * --taste-tangy(밀 빛 금색)·--taste-rich(흙빛)를 이어받아, 게임 전체가 쓰는
+ * 색 안에서만 고른다.
+ */
+.pl {
+  --pl-sky-top: #cfe6ef;
+  --pl-sky-bottom: #f6dfa0;
+  --pl-sun: #ffe9a8;
+  --pl-stem: #8a7a3a;
+  --pl-awn: var(--taste-tangy-lit);
+  --pl-head: var(--taste-tangy-dim);
+  --pl-head-lit: #f4c94a;
+
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: #0a0704;
+  transition: opacity 0.3s ease;
+}
+.pl.is-leaving {
+  opacity: 0;
+}
+.pl:focus-visible {
+  outline: none;
+}
+
+/* --- 밀밭 --- */
+.pl__field {
+  position: absolute;
+  inset: 0;
+}
+.pl__sky {
+  position: absolute;
+  inset: 0 0 42% 0;
+  background: linear-gradient(180deg, var(--pl-sky-top), var(--pl-sky-bottom));
+}
+.pl__sun {
+  position: absolute;
+  top: 14%;
+  right: 18%;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--pl-sun);
+  box-shadow: 0 0 60px 24px rgba(255, 224, 150, 0.55);
+}
+.pl__ground {
+  position: absolute;
+  inset: 55% 0 0 0;
+  background: linear-gradient(180deg, var(--taste-tangy-dim), var(--taste-rich-dim));
+}
+
+.pl__stalk {
+  position: absolute;
+  width: 14px;
+  transform-origin: 50% 100%;
+  animation: pl-sway ease-in-out infinite;
+}
+/* 먼 줄 — depth 가 낮은 포기. 흐리게 두어 가까운 줄과 켜를 가른다 */
+.pl__stalk.is-far {
+  opacity: 0.6;
+}
+.pl__stalk-art {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.pl__stalk-art .is-lit,
+.pl__stalk-art.is-lit ellipse {
+  fill: var(--pl-head-lit);
+}
+
+@keyframes pl-sway {
+  0%, 100% { rotate: -3deg; }
+  50% { rotate: 3deg; }
+}
+
+/* 주인공 밀 — 스포트라이트가 켜지면 밝아지며 커진다 */
+.pl__hero {
+  position: absolute;
+  left: 58%;
+  bottom: 34%;
+  width: 30px;
+  height: 92px;
+  transform-origin: 50% 100%;
+  transition: transform 0.7s cubic-bezier(0.22, 0.9, 0.3, 1);
+  filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+}
+.pl__hero.is-on {
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 22px rgba(255, 224, 120, 0.75));
+}
+.pl__hero .pl__stalk-art {
+  width: 30px;
+  height: 92px;
+}
+
+/* 스포트라이트가 켜지면 둘레가 어두워져 시선이 주인공 밀 하나로 좁혀진다 */
+.pl__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 34% 40% at 58% 66%,
+    transparent 0%,
+    rgba(10, 7, 4, 0.72) 78%
+  );
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+.pl__vignette.is-on {
+  opacity: 1;
+}
+
+/* --- 콤바인이 다가온다: 화면이 잘게 흔들린다 --- */
+.pl--harvest .pl__field {
+  animation: pl-shake 0.42s steps(2) infinite;
+}
+@keyframes pl-shake {
+  0%, 100% { translate: 0 0; }
+  25% { translate: 0 -3px; }
+  50% { translate: 0 2px; }
+  75% { translate: 0 -4px; }
+}
+
+/* --- 캄캄한 데서 반죽이 되어 간다 --- */
+.pl__dark {
+  position: absolute;
+  inset: 0;
+  background: #0a0704;
+}
+.pl__glow {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  translate: -50% -50%;
+  /* 도우 그림은 96×112 를 기준 크기로 쓴다(CharacterSprite.tsx). 그 두 배쯤 */
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffdf0 0%, rgba(255, 253, 240, 0.55) 42%, transparent 72%);
+  animation: pl-breathe 3.2s ease-in-out infinite;
+}
+@keyframes pl-breathe {
+  0%, 100% { scale: 1; opacity: 0.92; }
+  50% { scale: 1.06; opacity: 1; }
+}
+
+/* --- 대사 상자 --- */
+.pl__box {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  translate: -50% 0;
+  width: min(600px, 88vw);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  background: var(--panel);
+  border: 2px solid var(--line-strong);
+  border-left-width: 6px;
+}
+.pl__name {
+  align-self: flex-start;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 1px 8px;
+  margin-bottom: 2px;
+}
+.pl__text {
+  font-size: 15px;
+  line-height: 1.55;
+  min-height: 2.6em;
+}
+.pl__cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  margin-left: 2px;
+  background: var(--text);
+  vertical-align: -2px;
+  animation: pl-blink 0.85s step-end infinite;
+}
+@keyframes pl-blink {
+  50% { opacity: 0; }
+}
+.pl__hint {
+  align-self: flex-end;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+@media (max-width: 560px) {
+  .pl__box {
+    bottom: 6%;
+    padding: 11px 14px;
+  }
+  .pl__text {
+    font-size: 14px;
+  }
+  .pl__glow {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl__stalk,
+  .pl__glow,
+  .pl__cursor {
+    animation: none;
+  }
+  .pl--harvest .pl__field {
+    animation: none;
+  }
+  .pl__hero {
+    transition: none;
+  }
+  .pl {
+    transition: none;
+  }
+}

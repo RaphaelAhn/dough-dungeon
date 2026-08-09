@@ -61,7 +61,7 @@ export default function DiceRoll({
 
     const settled = rollDice()
     const started = Date.now()
-    // 발효도는 0 에서 결과값까지 차오르고, 온도는 끝까지 흔들린다.
+    // 숙성도는 0 에서 결과값까지 차오르고, 온도는 끝까지 흔들린다.
     const spin = setInterval(() => {
       const t = Math.min(1, (Date.now() - started) / ROLL_MS)
       setGauge({

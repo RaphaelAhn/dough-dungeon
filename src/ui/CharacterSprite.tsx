@@ -21,6 +21,18 @@ const ART_H = 112
 export type Mood = 'idle' | 'act' | 'guard' | 'weak' | 'hurt' | 'win' | 'lose'
 
 /**
+ * 반죽 색. 흰 도우가 기본이고, 나머지 둘은 도우 빚기 화면의 잠긴 카드다
+ * (CharacterCreate.tsx) — 지금은 색만 다르고 시작 능력에는 손대지 않는다.
+ */
+export type Skin = 'white' | 'blackRice' | 'chlorella'
+
+export const SKIN_LABEL: Record<Skin, string> = {
+  white: '흰 도우',
+  blackRice: '흑미 도우',
+  chlorella: '클로렐라 도우',
+}
+
+/**
  * 토핑이 놓이는 자리 — 도우 중심 기준 극좌표(각도°, 반지름 비율).
  * 얼굴(중앙)을 피해 가장자리를 돌며 놓인다. 상한 6칸에 맞춰 여섯 자리.
  */
@@ -60,20 +72,22 @@ export default function CharacterSprite({
   scale = 4,
   toppings = [],
   mood = 'idle',
+  skin = 'white',
 }: {
   scale?: number
   /** 도우에 올린 재료. 올린 순서대로 자리를 채운다. */
   toppings?: Topping[]
   mood?: Mood
+  skin?: Skin
 }) {
   const sauce = toppings.find((t) => t.kind === 'sauce')
   const solid = toppings.filter((t) => t.kind !== 'sauce')
-  const label =
-    toppings.length === 0 ? '흰 도우' : `흰 도우 — ${toppings.map((t) => t.name).join(', ')}`
+  const base = SKIN_LABEL[skin]
+  const label = toppings.length === 0 ? base : `${base} — ${toppings.map((t) => t.name).join(', ')}`
 
   return (
     <div
-      className={`sprite sprite--${mood}${sauce ? ' sprite--sauced' : ''}`}
+      className={`sprite sprite--${mood} sprite--skin-${skin}${sauce ? ' sprite--sauced' : ''}`}
       style={{
         width: ART_W * scale,
         height: ART_H * scale,

@@ -10,7 +10,7 @@ export const FACES: Face[] = [1, 2, 3, 4, 5, 6]
  */
 export type DiceResult = {
   face: Face
-  /** 발효도에서 뽑아낸다. 표에 적지 않는다 — 아래 FERMENT_TIERS 참고 */
+  /** 숙성도에서 뽑아낸다. 표에 적지 않는다 — 아래 FERMENT_TIERS 참고 */
   name: string
   /** 결과 화면에 그대로 노출되는 한 줄 */
   desc: string
@@ -18,7 +18,7 @@ export type DiceResult = {
   favors: string
   /** 숙성 온도(℃) — 화면에 보여 줄 값이고 계산에는 쓰지 않는다 */
   temp: number
-  /** 발효도(%) — 마찬가지로 표시용 */
+  /** 숙성도(%) — 마찬가지로 표시용 */
   ferment: number
   /** 시작 스탯에 더할 값 */
   stats?: Partial<Stats>
@@ -27,11 +27,11 @@ export type DiceResult = {
 }
 
 /**
- * 발효도 구간별 이름. 0~99 를 20 씩 다섯으로 나눈다.
+ * 숙성도 구간별 이름. 0~99 를 20 씩 다섯으로 나눈다.
  *
- * ⚠ 이름을 표에 따로 적어 두면 안 된다. 그렇게 두었더니 발효도 95% 인데
+ * ⚠ 이름을 표에 따로 적어 두면 안 된다. 그렇게 두었더니 숙성도 95% 인데
  * '응애 도우'가 나왔다 — 게이지와 이름이 서로를 모르니 어긋날 자리가 생겼다.
- * 이름은 저장하지 않고 발효도에서 뽑는다. 어긋날 수가 없다.
+ * 이름은 저장하지 않고 숙성도에서 뽑는다. 어긋날 수가 없다.
  */
 export const FERMENT_TIERS: { min: number; name: string }[] = [
   { min: 0, name: '응애 도우' },
@@ -45,7 +45,7 @@ export const FERMENT_TIERS: { min: number; name: string }[] = [
 export const PERFECT_FERMENT = 100
 export const PERFECT_NAME = '태초의 도우'
 
-/** 발효도 → 이름. 화면에 보이는 % 와 이름은 언제나 이 함수로 이어진다. */
+/** 숙성도 → 이름. 화면에 보이는 % 와 이름은 언제나 이 함수로 이어진다. */
 export function doughName(ferment: number): string {
   if (ferment >= PERFECT_FERMENT) return PERFECT_NAME
   let hit = FERMENT_TIERS[0]
@@ -59,7 +59,7 @@ type FaceSpec = Omit<DiceResult, 'name'>
  * ⚠ 수치는 시뮬레이션(npm run sim)으로 맞춘 값이다.
  * 눈별 클리어율이 한쪽으로 쏠리면 이 표만 고친다. 다른 파일은 손댈 필요 없다.
  *
- * 발효도는 여섯 눈이 각자 다른 구간에 앉도록 벌려 두었다. 몰아 두면 여섯 결과가
+ * 숙성도는 여섯 눈이 각자 다른 구간에 앉도록 벌려 두었다. 몰아 두면 여섯 결과가
  * 두세 이름을 나눠 쓰게 되어 이름이 결과를 구분하지 못한다.
  *
  * 이름이 등급 사다리처럼 읽히지만 여섯 결과에 우열은 없다. 클리어율이

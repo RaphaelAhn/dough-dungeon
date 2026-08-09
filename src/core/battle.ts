@@ -94,6 +94,14 @@ export type Command =
   | { type: 'defend' }
   | { type: 'skill'; id: SkillId; target?: number }
   | { type: 'item' }
+  /**
+   * 아무것도 하지 않는다. 명령 시간을 넘겼을 때 쓴다.
+   *
+   * 전에는 시간을 넘기면 자동으로 공격했다. 손을 놓고 있어도 도우가 알아서
+   * 싸워 이기니, 고르지 않은 것이 하나의 전략이 되어 버렸다 — 명령 시간
+   * 10초라는 압박이 통째로 사라진다. 안 고른 것은 안 한 것이다.
+   */
+  | { type: 'pass' }
 
 export type BattleState = {
   stage: number
@@ -113,7 +121,7 @@ export type BattleState = {
   log: string[]
   /** 이 스테이지에 남은 시간(ms). 0 이 되면 timeout. */
   timeLeftMs: number
-  /** 이번 턴에 커맨드를 고를 남은 시간(ms). 0 이 되면 자동 공격. */
+  /** 이번 턴에 커맨드를 고를 남은 시간(ms). 0 이 되면 아무것도 못 하고 넘어간다. */
   turnLeftMs: number
   /**
    * null 이면 진행 중.
@@ -179,10 +187,12 @@ export function startBattle(run: Run, enc: Encounter): BattleState {
 
 /**
  * 시간을 흘린다. UI 가 매 프레임 호출한다.
- * 스테이지 시간이 다하면 게임 오버(규칙 1). 턴 시간이 다하면 자동 공격을 알린다.
+ *
+ * 스테이지 시간이 다하면 게임 오버(규칙 1).
+ * 턴 시간이 다하면 timeUp 으로 알린다 — 그 턴은 아무것도 안 한 채로 넘어간다.
  */
-export function tick(prev: BattleState, elapsedMs: number): { state: BattleState; autoAct: boolean } {
-  if (prev.over) return { state: prev, autoAct: false }
+export function tick(prev: BattleState, elapsedMs: number): { state: BattleState; timeUp: boolean } {
+  if (prev.over) return { state: prev, timeUp: false }
 
   const timeLeftMs = Math.max(0, prev.timeLeftMs - elapsedMs)
   const turnLeftMs = Math.max(0, prev.turnLeftMs - elapsedMs)
@@ -190,10 +200,10 @@ export function tick(prev: BattleState, elapsedMs: number): { state: BattleState
   if (timeLeftMs === 0) {
     return {
       state: { ...prev, timeLeftMs, turnLeftMs, over: 'timeout', log: ['시간 초과'] },
-      autoAct: false,
+      timeUp: false,
     }
   }
-  return { state: { ...prev, timeLeftMs, turnLeftMs }, autoAct: turnLeftMs === 0 }
+  return { state: { ...prev, timeLeftMs, turnLeftMs }, timeUp: turnLeftMs === 0 }
 }
 
 const alive = (u: Unit) => u.hp > 0
@@ -382,6 +392,12 @@ function resolvePlayer(s: BattleState, cmd: Command, rng: Rng): void {
 
   if (has(p, 'stun')) {
     s.log.push(`${ga(p.name)} 굳어 움직일 수 없다`)
+    return
+  }
+
+  if (cmd.type === 'pass') {
+    // 왜 아무 일도 안 일어났는지는 적어 줘야 한다. 로그가 비면 멈춘 것처럼 보인다.
+    s.log.push(`${ga(p.name)} 망설이는 사이 턴이 지나갔다`)
     return
   }
 

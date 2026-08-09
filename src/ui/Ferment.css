@@ -61,7 +61,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* --- 발효 게이지 --- */
+/* --- 숙성 게이지 --- */
 .fm__gauge {
   display: flex;
   flex-direction: column;
