@@ -1,0 +1,107 @@
+.sm {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  overflow-y: auto;
+  gap: 20px;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(226, 118, 43, 0.1), transparent 70%),
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(160, 120, 70, 0.1) 3px 4px),
+    var(--bg);
+}
+
+.sm__title {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+
+.sm__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 280px;
+}
+
+.sm__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--muted);
+  border: 2px solid transparent;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.sm__item.is-on {
+  color: var(--text);
+  background: rgba(226, 118, 43, 0.12);
+  border-color: var(--accent);
+}
+
+/*
+ * 잠긴 칸은 글자를 아예 채도 없이 둔다 — 요청대로 '흑백'으로 보이게.
+ * is-on 이 겹쳐도 잠김이 이긴다: 커서가 가 있어도 색이 안 살아난다.
+ */
+.sm__item.is-locked {
+  color: #8a8a8a;
+  filter: grayscale(1);
+}
+.sm__item.is-locked.is-on {
+  color: #b0b0b0;
+  background: rgba(120, 120, 120, 0.12);
+  border-color: #8a8a8a;
+}
+
+.sm__mark {
+  width: 22px;
+  color: var(--accent);
+}
+.sm__item.is-locked .sm__mark {
+  color: #8a8a8a;
+}
+
+.sm__lock {
+  margin-left: auto;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: #8a8a8a;
+  border: 1px solid #8a8a8a;
+  padding: 1px 8px;
+}
+
+.sm__notice {
+  min-height: 1.4em;
+  font-size: 13px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.sm__notice.is-on {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.sm__back {
+  padding: 8px 22px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.sm__back:hover,
+.sm__back:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.sm__hint {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.6;
+}

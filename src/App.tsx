@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import TitleScreen from './ui/TitleScreen'
+import StartMenu from './ui/StartMenu'
 import Prologue from './ui/Prologue'
 import CharacterCreate from './ui/CharacterCreate'
 import DiceRoll from './ui/DiceRoll'
 import Divide from './ui/Divide'
 import Balling from './ui/Balling'
 import Shaping from './ui/Shaping'
+import KitchenCall from './ui/KitchenCall'
 import Battle from './ui/Battle'
 import Reward from './ui/Reward'
 import Result, { type ResultKind } from './ui/Result'
@@ -37,12 +39,14 @@ import './App.css'
 
 type Screen =
   | 'title'
+  | 'startmenu'
   | 'prologue'
   | 'character'
   | 'dice'
   | 'divide'
   | 'balling'
   | 'shaping'
+  | 'kitchencall'
   | 'battle'
   | 'recruit'
   | 'reward'
@@ -61,6 +65,8 @@ export default function App() {
   // 만들기 단계의 결과. 런이 만들어질 때 한꺼번에 반영된다.
   const [portion, setPortion] = useState<Portion>('medium')
   const [tension, setTension] = useState(70)
+  // 성형 결과. KitchenCall 연출이 끝나야 런이 시작되니 그때까지 들고 있는다.
+  const [stretch, setStretch] = useState<Stretch>('even')
   // 런은 주사위를 굴린 순간 만들어진다. 그 전에는 캐릭터 정보만 들고 있다.
   const [run, setRun] = useState<Run | null>(null)
   // 라운드마다 새로 뽑는다. 고정 표가 아니다.
@@ -101,17 +107,18 @@ export default function App() {
     setScreen('shaping')
   }, [])
 
-  const startRun = useCallback(
-    (stretch: Stretch) => {
-      const started = drawEncounter(
-        refillMp(createRun(name, face, portion, tension, stretch)),
-      )
-      setRun(started.run)
-      setEnc(started.enc)
-      setScreen('battle')
-    },
-    [name, face, portion, tension],
-  )
+  /* 성형이 끝나면 곧바로 싸우지 않는다. 주방의 재촉(KitchenCall)이 먼저다. */
+  const toKitchenCall = useCallback((s: Stretch) => {
+    setStretch(s)
+    setScreen('kitchencall')
+  }, [])
+
+  const startRun = useCallback(() => {
+    const started = drawEncounter(refillMp(createRun(name, face, portion, tension, stretch)))
+    setRun(started.run)
+    setEnc(started.enc)
+    setScreen('battle')
+  }, [name, face, portion, tension, stretch])
 
   /** 다음 라운드로. 8라운드 진입 시 굽기가 걸린다. */
   const advance = useCallback((cur: Run) => {
@@ -186,7 +193,11 @@ export default function App() {
   }, [])
 
   if (screen === 'title') {
-    return <TitleScreen onSelect={(a) => setScreen(a === 'start' ? 'prologue' : a)} />
+    return <TitleScreen onSelect={(a) => setScreen(a === 'start' ? 'startmenu' : a)} />
+  }
+
+  if (screen === 'startmenu') {
+    return <StartMenu onMake={() => setScreen('prologue')} onBack={back} />
   }
 
   if (screen === 'prologue') {
@@ -210,7 +221,11 @@ export default function App() {
   }
 
   if (screen === 'shaping') {
-    return <Shaping name={name} tension={tension} onDone={startRun} />
+    return <Shaping name={name} tension={tension} onDone={toKitchenCall} />
+  }
+
+  if (screen === 'kitchencall') {
+    return <KitchenCall onDone={startRun} />
   }
 
   if (screen === 'battle' && run) {
@@ -257,7 +272,7 @@ export default function App() {
  * 결과 화면만 곡을 끈다 — 완성·상함·타 버림은 5초 넘게 끄는 소리라
  * 그 위에 배경음이 깔리면 무엇으로 끝났는지가 안 들린다.
  */
-const PREP_SCREENS: Screen[] = ['title', 'character', 'dice', 'divide', 'codex', 'howto']
+const PREP_SCREENS: Screen[] = ['title', 'startmenu', 'character', 'dice', 'divide', 'codex', 'howto']
 
 function musicLevel(screen: Screen, run: Run | null): MusicLevel {
   if (screen === 'result') return 0
@@ -265,6 +280,8 @@ function musicLevel(screen: Screen, run: Run | null): MusicLevel {
   if (screen === 'prologue') return 0
   // 화덕 연출도 마찬가지다 — 재료 놓는 소리·굽는 소리가 주인공이다
   if (screen === 'bake') return 0
+  // 주방의 재촉도 대사가 자리를 다 쓴다
+  if (screen === 'kitchencall') return 0
   if (PREP_SCREENS.includes(screen)) return 1
   // 둥글리기·성형은 아직 전투가 아니지만 도우는 이미 잘렸다. 여기서 곡이 갈린다.
   if (!run) return 2

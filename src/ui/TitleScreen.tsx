@@ -39,7 +39,7 @@ export default function TitleScreen({ onSelect }: { onSelect: (a: TitleAction) =
       <div className="title__top">
         <PizzaMark size={104} />
         <h1 className="title__logo">
-          도우 <span>던전</span>
+          Dough to <span>Journey</span>
         </h1>
         <p className="title__tag">숙성하고, 모으고, 구워라</p>
       </div>

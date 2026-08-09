@@ -511,6 +511,39 @@ const SPECS = {
     }),
   },
 
+  /**
+   * 못 알아듣는 목소리 하나 — 자막으로만 뜻이 전해지는 장면에 깐다.
+   *
+   * 실제 말소리가 아니라 음절 하나하나를 짧은 사각파 블립으로 흉내 낸다
+   * (애니멀레이즈 방식). 높낮이를 들쭉날쭉 둬야 '말하는 것처럼' 들린다 —
+   * 다 같은 높이면 모스 부호처럼 들린다.
+   */
+  gibberish: {
+    tones: [
+      { from: 340, dur: 0.06, vol: 0.24, wave: 'square' as Wave },
+      { from: 480, dur: 0.05, at: 0.07, vol: 0.24, wave: 'square' as Wave },
+      { from: 260, dur: 0.06, at: 0.13, vol: 0.22, wave: 'square' as Wave },
+      { from: 520, dur: 0.05, at: 0.2, vol: 0.24, wave: 'square' as Wave },
+      { from: 300, dur: 0.06, at: 0.27, vol: 0.22, wave: 'square' as Wave },
+      { from: 440, dur: 0.05, at: 0.34, vol: 0.24, wave: 'square' as Wave },
+      { from: 380, dur: 0.06, at: 0.41, vol: 0.22, wave: 'square' as Wave },
+      { from: 500, dur: 0.06, at: 0.48, vol: 0.24, wave: 'square' as Wave },
+    ],
+  },
+  /** 다른 목소리 — gibberish 와 같은 방식이되 한 옥타브 위, 더 잘게 끊는다 */
+  gibberish2: {
+    tones: [
+      { from: 620, dur: 0.045, vol: 0.22, wave: 'square' as Wave },
+      { from: 860, dur: 0.04, at: 0.05, vol: 0.22, wave: 'square' as Wave },
+      { from: 540, dur: 0.045, at: 0.1, vol: 0.2, wave: 'square' as Wave },
+      { from: 900, dur: 0.04, at: 0.15, vol: 0.22, wave: 'square' as Wave },
+      { from: 700, dur: 0.045, at: 0.2, vol: 0.2, wave: 'square' as Wave },
+      { from: 780, dur: 0.04, at: 0.25, vol: 0.22, wave: 'square' as Wave },
+      { from: 600, dur: 0.045, at: 0.3, vol: 0.2, wave: 'square' as Wave },
+      { from: 920, dur: 0.05, at: 0.35, vol: 0.24, wave: 'square' as Wave },
+    ],
+  },
+
   /** 결과 발표 — 도-미-솔-도 를 올라간 뒤 화음을 길게 놓는다 */
   tada: {
     tones: [

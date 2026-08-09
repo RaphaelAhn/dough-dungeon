@@ -199,6 +199,43 @@
   opacity: 0.75;
 }
 
+/* reveal 단계의 대사 상자 — 사람이 못 건드리니 스스로 나타났다 사라진다 */
+.pl__box.is-off {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.pl__box.is-on {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+/*
+ * 못 알아듣는 외침 — 화면 가운데 크게, 자막처럼 뜬다. 대사 상자와 자리가
+ * 겹치면 안 되니 아예 화면을 다 쓰고 상자보다 위(z-index)에 둔다.
+ */
+.pl__shout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8%;
+  text-align: center;
+  font-size: clamp(28px, 6vw, 52px);
+  font-weight: 900;
+  color: #fffdf0;
+  text-shadow: 0 0 24px rgba(255, 253, 240, 0.65), 0 3px 0 rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  scale: 0.92;
+  transition: opacity 0.18s ease, scale 0.18s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+.pl__shout.is-on {
+  opacity: 1;
+  scale: 1;
+}
+
 @media (max-width: 560px) {
   .pl__box {
     bottom: 6%;

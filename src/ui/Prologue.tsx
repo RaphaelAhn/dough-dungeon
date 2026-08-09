@@ -41,7 +41,31 @@ const HARVEST_MS = 1900
 /** 마지막 대사를 다 본 뒤 도우 빚기로 넘어가며 화면이 지워지는 시간 */
 const LEAVE_MS = 300
 
-type Phase = 'field' | 'harvest' | 'dark'
+/**
+ * 마지막 어둠 대사 뒤 — 밀이 도우로 불리는 순간.
+ *
+ * 여기부터는 클릭으로 넘기지 않는다. 코미디 타이밍이라 사람이 누르는
+ * 순간 박자가 흐트러진다 — 자동으로 흘러가게 두고 사람은 보기만 한다.
+ * 'shout' 은 화면 가운데 크게 뜨는, 알아들을 수 없는(자막으로만 뜻이
+ * 전해지는) 목소리다. 'line' 은 기존 대사 상자와 같은 자리에, 도우 자신이
+ * 또렷하게 하는 말이다.
+ */
+type RevealStep =
+  | { kind: 'shout'; text: string; sound: 'gibberish' | 'gibberish2' | 'tada'; holdMs: number }
+  | { kind: 'line'; text: string; holdMs: number }
+
+const REVEAL_STEPS: RevealStep[] = [
+  { kind: 'shout', text: '막내야!!! 도우는!!!', sound: 'gibberish', holdMs: 900 },
+  { kind: 'line', text: '난 밀인데? 내가 도우야?', holdMs: 1200 },
+  { kind: 'shout', text: '네!!! 쉐프!!!!!!!', sound: 'tada', holdMs: 800 },
+  { kind: 'shout', text: '!@#!@$ 피자 주문 들어왔습니다!!!', sound: 'gibberish2', holdMs: 800 },
+]
+/** 대사 사이 정적. 슝 하고 다음 게 뜨면 안 붙는다 */
+const REVEAL_GAP_MS = 500
+/** 이름이 밀→도우로 바뀌는 자리. 첫 shout(막내야! 도우는!)이 끝난 직후다 */
+const RENAME_AFTER_STEP = 0
+
+type Phase = 'field' | 'harvest' | 'dark' | 'reveal'
 
 /*
  * 배경의 밀 백열 포기. 결과 화면의 색종이(Result.tsx Confetti)와 같은 방식 —
@@ -127,6 +151,10 @@ export default function Prologue({ onDone }: { onDone: () => void }) {
   const [spotlightOn, setSpotlightOn] = useState(false)
   const [beat, setBeat] = useState(0)
   const [leaving, setLeaving] = useState(false)
+  // reveal 단계 진행. speakerName 은 '막내야! 도우는!' 이 끝나는 순간 밀→도우로 바뀐다.
+  const [revealIndex, setRevealIndex] = useState(0)
+  const [revealVisible, setRevealVisible] = useState(false)
+  const [speakerName, setSpeakerName] = useState('밀')
 
   useEffect(() => {
     const t = window.setTimeout(() => setSpotlightOn(true), SPOTLIGHT_DELAY_MS)
@@ -139,6 +167,33 @@ export default function Prologue({ onDone }: { onDone: () => void }) {
     const t = window.setTimeout(() => setPhase('dark'), HARVEST_MS)
     return () => window.clearTimeout(t)
   }, [phase])
+
+  /*
+   * reveal 은 사람이 넘기지 않는다. 한 스텝을 보여 주고(holdMs), 감춘 뒤
+   * 정적(REVEAL_GAP_MS)을 두고 다음으로 간다 — 코미디 박자를 클릭이 흔들면
+   * 안 된다.
+   */
+  useEffect(() => {
+    if (phase !== 'reveal') return
+    const step = REVEAL_STEPS[revealIndex]
+    if (step.kind === 'shout') play(step.sound)
+    setRevealVisible(true)
+    const hideT = window.setTimeout(() => setRevealVisible(false), step.holdMs)
+    const nextT = window.setTimeout(() => {
+      if (revealIndex === RENAME_AFTER_STEP) setSpeakerName('도우')
+      if (revealIndex < REVEAL_STEPS.length - 1) {
+        setRevealIndex((i) => i + 1)
+      } else {
+        setLeaving(true)
+        window.setTimeout(onDone, LEAVE_MS)
+      }
+    }, step.holdMs + REVEAL_GAP_MS)
+    return () => {
+      window.clearTimeout(hideT)
+      window.clearTimeout(nextT)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, revealIndex])
 
   const lineText =
     phase === 'field' ? (spotlightOn ? FIELD_LINE : '') : phase === 'dark' ? DARK_BEATS[beat] : ''
@@ -153,6 +208,7 @@ export default function Prologue({ onDone }: { onDone: () => void }) {
       return
     }
     if (phase === 'harvest') return // 흔들리는 동안은 자동으로만 넘어간다
+    if (phase === 'reveal') return // 여기부터는 자동으로만 넘어간다
     // phase === 'dark'
     if (!done) return skip()
     if (beat < DARK_BEATS.length - 1) {
@@ -160,8 +216,7 @@ export default function Prologue({ onDone }: { onDone: () => void }) {
       setBeat((b) => b + 1)
       return
     }
-    setLeaving(true)
-    window.setTimeout(onDone, LEAVE_MS)
+    setPhase('reveal')
   }
 
   useEffect(() => {
@@ -176,14 +231,16 @@ export default function Prologue({ onDone }: { onDone: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, spotlightOn, done, beat, leaving])
 
+  const revealStep = phase === 'reveal' ? REVEAL_STEPS[revealIndex] : null
+
   return (
     <div
-      className={`pl pl--${phase}${leaving ? ' is-leaving' : ''}`}
+      className={`pl pl--${phase === 'reveal' ? 'dark' : phase}${leaving ? ' is-leaving' : ''}`}
       onClick={advance}
       role="button"
       tabIndex={0}
     >
-      {phase !== 'dark' ? (
+      {phase !== 'dark' && phase !== 'reveal' ? (
         <WheatField spotlightOn={spotlightOn} />
       ) : (
         <div className="pl__dark">
@@ -204,6 +261,19 @@ export default function Prologue({ onDone }: { onDone: () => void }) {
             {!done && <i className="pl__cursor" aria-hidden="true" />}
           </p>
           {done && <p className="pl__hint">클릭 · Enter</p>}
+        </div>
+      )}
+
+      {revealStep?.kind === 'line' && (
+        <div className={`pl__box${revealVisible ? ' is-on' : ' is-off'}`}>
+          <b className="pl__name">{speakerName}</b>
+          <p className="pl__text">{revealStep.text}</p>
+        </div>
+      )}
+
+      {revealStep?.kind === 'shout' && (
+        <div className={`pl__shout${revealVisible ? ' is-on' : ''}`} aria-hidden="true">
+          {revealStep.text}
         </div>
       )}
     </div>

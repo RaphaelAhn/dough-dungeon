@@ -1,0 +1,124 @@
+.kc {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: #0a0704;
+  transition: opacity 0.3s ease;
+}
+.kc.is-leaving {
+  opacity: 0;
+}
+.kc:focus-visible {
+  outline: none;
+}
+
+.kc__glow {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  translate: -50% -50%;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffdf0 0%, rgba(255, 253, 240, 0.55) 42%, transparent 72%);
+  animation: kc-breathe 3.2s ease-in-out infinite;
+}
+@keyframes kc-breathe {
+  0%, 100% { scale: 1; opacity: 0.92; }
+  50% { scale: 1.06; opacity: 1; }
+}
+
+.kc__box {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  translate: -50% 0;
+  width: min(600px, 88vw);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  background: var(--panel);
+  border: 2px solid var(--line-strong);
+  border-left-width: 6px;
+}
+.kc__name {
+  align-self: flex-start;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 1px 8px;
+  margin-bottom: 2px;
+}
+.kc__text {
+  font-size: 15px;
+  line-height: 1.55;
+  min-height: 2.6em;
+}
+.kc__cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  margin-left: 2px;
+  background: var(--text);
+  vertical-align: -2px;
+  animation: kc-blink 0.85s step-end infinite;
+}
+@keyframes kc-blink {
+  50% { opacity: 0; }
+}
+.kc__hint {
+  align-self: flex-end;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.kc__shout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8%;
+  text-align: center;
+  font-size: clamp(28px, 6vw, 52px);
+  font-weight: 900;
+  color: #fffdf0;
+  text-shadow: 0 0 24px rgba(255, 253, 240, 0.65), 0 3px 0 rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  scale: 0.92;
+  transition: opacity 0.18s ease, scale 0.18s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+.kc__shout.is-on {
+  opacity: 1;
+  scale: 1;
+}
+
+@media (max-width: 560px) {
+  .kc__box {
+    bottom: 6%;
+    padding: 11px 14px;
+  }
+  .kc__text {
+    font-size: 14px;
+  }
+  .kc__glow {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kc__glow,
+  .kc__cursor {
+    animation: none;
+  }
+  .kc {
+    transition: none;
+  }
+}
