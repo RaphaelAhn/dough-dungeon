@@ -6,20 +6,25 @@ import './KitchenCall.css'
 /**
  * 성형이 끝난 뒤, 전투로 들어가기 전 한 박자.
  *
- * 도우가 자신의 앞날을 되새기는 한 줄(클릭으로 넘긴다) 다음, 주방에서
+ * 도우가 자신의 앞날을 되새기는 대사 세 줄(클릭으로 넘긴다) 다음, 주방에서
  * 못 알아듣는 목소리가 재촉한다(자동으로 떴다 사라진다) — Prologue 의
  * reveal 단계와 같은 자리다.
  */
 
-const LINE = '그럼 나는 피자가 되는건가... 먹는건가? 그럼 난 세계 최고의 근본 피자가 될거야!!'
+const LINES = [
+  '그럼 나는 피자가 되는건가 ... 먹히는건가? 그럼 난 세계 최고의 근본 피자가 될거야!!',
+  '그럼 최고의 재료들을 모아서 화덕으로 가야지!!!',
+  '자 빨리 할게요',
+]
 const SHOUT = '피자 빨리 준비할게요!!!!'
 const SHOUT_HOLD_MS = 900
 const LEAVE_MS = 300
 
 export default function KitchenCall({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<'line' | 'shout' | 'leave'>('line')
+  const [beat, setBeat] = useState(0)
   const [shoutOn, setShoutOn] = useState(false)
-  const { display, done, skip } = useTypewriter(phase === 'line' ? LINE : '')
+  const { display, done, skip } = useTypewriter(phase === 'line' ? LINES[beat] : '')
 
   useEffect(() => {
     if (phase !== 'shout') return
@@ -39,6 +44,10 @@ export default function KitchenCall({ onDone }: { onDone: () => void }) {
   const advance = () => {
     if (phase !== 'line') return
     if (!done) return skip()
+    if (beat < LINES.length - 1) {
+      setBeat((b) => b + 1)
+      return
+    }
     setPhase('shout')
   }
 
@@ -52,7 +61,7 @@ export default function KitchenCall({ onDone }: { onDone: () => void }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, done])
+  }, [phase, done, beat])
 
   return (
     <div
