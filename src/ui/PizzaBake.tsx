@@ -131,11 +131,24 @@ export default function PizzaBake({ run, onDone }: { run: Run; onDone: () => voi
           />
         </div>
 
+        {/*
+          화구는 문으로 막지 않는다 — 안이 그대로 보여야 뜨겁다는 게
+          전해진다. 바깥 아치(테두리)와 안쪽 뚫린 구멍(mouth)을 나눠, 구멍
+          속에 흰 불빛(core)을 넣고 그 위에 아지랑이(shimmer)를 얹는다.
+        */}
         <div className={`pb__oven${idx >= STAGE_ORDER.indexOf('oven') ? ' is-on' : ''}`} aria-hidden="true">
-          <span className="pb__oven-glow" />
+          <span className="pb__oven-mouth">
+            <span className="pb__oven-core" />
+            <span className="pb__oven-shimmer" />
+            <span className="pb__oven-shimmer pb__oven-shimmer--b" />
+          </span>
           {stage === 'baking' &&
-            Array.from({ length: 5 }, (_, i) => (
-              <i key={i} className="pb__ember" style={{ left: `${30 + i * 10}%`, animationDelay: `${i * 0.3}s` }} />
+            Array.from({ length: 9 }, (_, i) => (
+              <i
+                key={i}
+                className="pb__ember"
+                style={{ left: `${16 + i * 8.5}%`, animationDelay: `${i * 0.22}s` }}
+              />
             ))}
         </div>
       </div>

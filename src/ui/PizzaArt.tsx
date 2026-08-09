@@ -114,6 +114,19 @@ export default function PizzaArt({
           )
         })}
       <span className={`pa__cheese${showCheese ? ' is-on' : ''}`} aria-hidden="true" />
+      {/*
+        얼굴은 구워진 뒤에만 그린다 — 화덕에서 막 꺼낸 피자가 웃는 순간이지,
+        아직 재료만 얹힌 반죽에 그릴 표정이 아니다. 치즈보다 위(z-index)에
+        둬야 토핑이 많아도 얼굴이 파묻히지 않는다.
+      */}
+      {baked && (
+        <span className="pa__face" aria-hidden="true">
+          <i className="pa__eye pa__eye--l" />
+          <i className="pa__eye pa__eye--r" />
+          <i className="pa__nose" />
+          <i className="pa__mouth" />
+        </span>
+      )}
     </div>
   )
 }

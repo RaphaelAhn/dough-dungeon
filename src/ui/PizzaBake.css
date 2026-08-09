@@ -30,8 +30,8 @@
 
 .pb__scene {
   position: relative;
-  width: 300px;
-  height: 320px;
+  width: min(90vw, 580px);
+  height: min(78vw, 500px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -49,25 +49,39 @@
     scale 0.7s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.7s ease;
 }
-/* 화덕 안으로 — 작아지고 흐려지며 아래로 내려간다. 빼면(=done) 같은 전환으로 되돌아온다 */
+/*
+ * 화덕 안으로 — 작아지고 흐려지며 아래로 내려간다. 빼면(=done) 같은 전환으로
+ * 되돌아온다. 화덕이 커진 만큼 더 깊이 내려가야 구멍 속에 들어간 것처럼
+ * 보인다 — 예전 66px 그대로면 커진 아치 위에 붕 떠 있게 된다.
+ */
 .pb__pizza.is-in-oven {
-  translate: 0 66px;
-  scale: 0.52;
+  translate: 0 118px;
+  scale: 0.5;
   opacity: 0.3;
 }
 
-/* --- 화덕 --- */
+/*
+ * --- 화덕 ---
+ *
+ * 예전엔 아치 전체를 갈색 하나로 칠하고 그 안에 작은 빛 덩어리 하나를
+ * 뒀다 — 멀리서 보면 문이 닫혀 있는 것처럼 보였다. 지금은 바깥 테두리
+ * (돌 아치, .pb__oven)와 안쪽으로 뻥 뚫린 구멍(.pb__oven-mouth)을 나눈다.
+ * 문이 없으니 구멍 속 불빛(.pb__oven-core)이 그대로 드러난다 — 안이
+ * 얼마나 뜨거운지가 가려지지 않는다.
+ *
+ * 크기는 예전(226×132)의 다섯 배 넓이 안팎으로 키웠다.
+ */
 .pb__oven {
   position: absolute;
   left: 50%;
   bottom: -6px;
   translate: -50% 0;
-  width: 226px;
-  height: 132px;
-  border-radius: 113px 113px 16px 16px;
+  width: min(88%, 460px);
+  aspect-ratio: 500 / 300;
+  border-radius: 46% 46% 8% 8%;
   background: linear-gradient(180deg, #6b5a4a, #3a2c21);
-  border: 6px solid #2a1f17;
-  overflow: hidden;
+  border: 10px solid #2a1f17;
+  overflow: visible;
   opacity: 0;
   z-index: 0;
   transition: opacity 0.5s ease;
@@ -75,36 +89,86 @@
 .pb__oven.is-on {
   opacity: 1;
 }
-.pb__oven-glow {
+
+/* 안쪽 구멍 — 문 없이 뻥 뚫려 있다. 돌 테두리 안쪽으로 한 겹 파고든다 */
+.pb__oven-mouth {
+  position: absolute;
+  inset: 6% 8% 3% 8%;
+  border-radius: 44% 44% 6% 6%;
+  overflow: hidden;
+  background: radial-gradient(closest-side, #1a0e08, #0a0503 82%);
+  box-shadow: inset 0 10px 26px rgba(0, 0, 0, 0.6);
+}
+
+/* 구멍 속 불빛 — 하얗게 달아오른 가운데에서 붉게 번져 나간다 */
+.pb__oven-core {
   position: absolute;
   left: 50%;
-  bottom: 8px;
+  bottom: -10%;
   translate: -50% 0;
-  width: 130px;
-  height: 74px;
+  width: 96%;
+  height: 78%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 150, 60, 0.85), rgba(255, 90, 20, 0.22) 72%, transparent);
-  filter: blur(2px);
+  background: radial-gradient(
+    closest-side,
+    #fff6dc 0%,
+    #ffcf7a 22%,
+    rgba(255, 150, 60, 0.9) 48%,
+    rgba(255, 90, 20, 0.45) 74%,
+    transparent
+  );
+  filter: blur(1px);
   animation: pb-glow 1.4s ease-in-out infinite;
 }
 @keyframes pb-glow {
   0%, 100% {
-    opacity: 0.7;
+    opacity: 0.78;
     scale: 1;
   }
   50% {
     opacity: 1;
-    scale: 1.08;
+    scale: 1.06;
   }
 }
+
+/* 아지랑이 — 뜨거운 공기가 흔들리며 올라간다는 인상만 준다 */
+.pb__oven-shimmer {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: 30%;
+  height: 55%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 6px,
+    rgba(255, 255, 255, 0.05) 6px 8px
+  );
+  filter: blur(3px);
+  mix-blend-mode: screen;
+  animation: pb-shimmer 2.2s ease-in-out infinite;
+}
+.pb__oven-shimmer--b {
+  animation-duration: 2.8s;
+  animation-delay: -1.1s;
+  opacity: 0.6;
+}
+@keyframes pb-shimmer {
+  0%, 100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -8%;
+  }
+}
+
 .pb__ember {
   position: absolute;
-  bottom: 24px;
-  width: 4px;
-  height: 4px;
+  bottom: 18%;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #ffb15c;
-  box-shadow: 0 0 6px 2px rgba(255, 150, 60, 0.7);
+  box-shadow: 0 0 8px 3px rgba(255, 150, 60, 0.75);
   animation: pb-ember 1.8s ease-out infinite;
 }
 @keyframes pb-ember {
@@ -113,7 +177,7 @@
     opacity: 0.9;
   }
   100% {
-    translate: 0 -74px;
+    translate: 0 -140px;
     opacity: 0;
   }
 }
@@ -131,17 +195,13 @@
 }
 
 @media (max-width: 560px) {
-  .pb__scene {
-    width: 240px;
-    height: 270px;
-  }
-  /* PizzaArt 는 px 크기를 prop 으로 받아 그린다 — 여기서는 통째로 축소한다 */
+  /*
+   * .pb__scene 과 .pb__oven 은 이미 vw 기준이라 화면을 따라 준다 —
+   * 여기서 다시 px 로 고정하면 좁은 화면에서 오히려 예전 작은 크기로
+   * 되돌아간다. 피자 그림(PizzaArt)만 고정 px prop 이라 여기서 줄인다.
+   */
   .pb__pizza {
     scale: 0.82;
-  }
-  .pb__oven {
-    width: 186px;
-    height: 110px;
   }
 }
 
@@ -151,7 +211,8 @@
   .pb__oven {
     transition: none;
   }
-  .pb__oven-glow,
+  .pb__oven-core,
+  .pb__oven-shimmer,
   .pb__ember {
     animation: none;
   }
