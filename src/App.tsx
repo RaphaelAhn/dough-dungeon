@@ -33,7 +33,7 @@ import {
   type Run,
 } from './core/run'
 import { rollEncounter, type Encounter, type EnemyDef } from './core/enemy'
-import { toppingStats } from './core/topping'
+import { MEATS, SAUCES, toppingStats, VEGGIES } from './core/topping'
 import { CODEX_TOTAL, discoveredCount, fullName, loadCodex, recordPizza } from './core/codex'
 import './App.css'
 
@@ -55,6 +55,28 @@ type Screen =
   | 'codex'
   | 'howto'
 
+
+/**
+ * ⚠ 로컬 확인용 — 보스를 잡지 않고도 화덕 연출(PizzaBake)을 바로 볼 수
+ * 있게 한다. 실제 진행 없이 토핑·소스를 손으로 채운 가짜 런을 만든다.
+ * 커밋하지 않는다 — 제출본에는 필요 없다.
+ */
+function debugBakePreviewRun(): Run {
+  let run = createRun('디버그', 3, 'large', 70, 'even')
+  const add = (t: (typeof VEGGIES)[number]) => {
+    run = addTopping(run, t, toppingStats(t))
+  }
+  const pick = (list: typeof VEGGIES, name: string) => list.find((t) => t.name === name)
+  ;[
+    pick(VEGGIES, '방울토마토'),
+    pick(MEATS, '페퍼로니'),
+    pick(VEGGIES, '바질'),
+    pick(VEGGIES, '가지'),
+  ].forEach((t) => t && add(t))
+  run = bake({ ...run, stage: BAKE_STAGE })
+  const sauce = pick(SAUCES, '토마토 소스')
+  return { ...run, stage: FINAL_STAGE, toppings: sauce ? [...run.toppings, sauce] : run.toppings }
+}
 
 // ponytail: 화면 수가 적어 라우터 없이 상태 하나로 전환한다.
 export default function App() {
@@ -82,6 +104,18 @@ export default function App() {
    */
   const level = musicLevel(screen, run)
   useEffect(() => setMusic(level), [level])
+
+  // ⚠ 로컬 확인용 단축키 — 타이틀에서 P 를 누르면 화덕 연출로 바로 간다. 커밋 금지.
+  useEffect(() => {
+    if (screen !== 'title') return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'p' && e.key !== 'P') return
+      setRun(debugBakePreviewRun())
+      setScreen('bake')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [screen])
 
   const back = useCallback(() => setScreen('title'), [])
 
@@ -178,7 +212,8 @@ export default function App() {
 
   /** 화덕 연출이 끝난 뒤 — 이제야 도감에 적고 결과 화면으로 간다 */
   const onBakeDone = useCallback(() => {
-    if (run?.pizza) {
+    // ⚠ '디버그' 는 위 미리보기 단축키가 쓰는 이름이다. 실제 도감을 더럽히지 않는다.
+    if (run?.pizza && run.name !== '디버그') {
       setMadeName(fullName(run.pizza, run.toppings))
       setFound(discoveredCount(recordPizza(run.pizza, run.toppings)))
     }
